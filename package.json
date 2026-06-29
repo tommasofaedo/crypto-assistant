@@ -1,0 +1,21 @@
+{
+  "name": "crypto_assistant",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "agent": "node agent.js",
+    "sync": "node sync-portfolio.js",
+    "update-csv": "node update-from-csv.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.106.0",
+    "axios": "^1.18.1",
+    "dotenv": "^17.4.2"
+  }
+}

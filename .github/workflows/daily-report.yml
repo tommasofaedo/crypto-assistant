@@ -1,0 +1,28 @@
+name: Daily Crypto Report
+
+on:
+  schedule:
+    - cron: '0 7 * * *'  # 09:00 ora italiana (CEST) / 08:00 (CET)
+  workflow_dispatch:       # permette lancio manuale dal sito GitHub
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Send daily report
+        run: node telegram-report.js
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          CRYPTO_API_KEY: ${{ secrets.CRYPTO_API_KEY }}
+          CRYPTO_API_SECRET: ${{ secrets.CRYPTO_API_SECRET }}

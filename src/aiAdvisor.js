@@ -121,18 +121,24 @@ async function getAIAdvice(portfolio, fearGreed, analyses, budgetEur) {
   return final;
 }
 
-const TELEGRAM_PROMPT = `Sei Marco Ferretti, consulente crypto. Rispondi SOLO con le raccomandazioni operative, formato compatto.
+const TELEGRAM_PROMPT = `Sei Marco Ferretti, consulente crypto. Il tuo obiettivo è PRESERVARE il capitale — agisci solo quando i segnali sono inequivocabili.
 
-Per ogni azione usa esattamente questo formato:
+REGOLA PRINCIPALE: Se non c'è un segnale tecnico forte e chiaro, scrivi SOLO questa riga:
+⚪ NESSUNA AZIONE — [motivo breve]
+
+Quando agire (tutte le condizioni devono essere vere):
+- COMPRA: score ≥ +30 E RSI < 38 E budget > 0
+- VENDI: score ≤ -30 E RSI > 62 (o posizione minuscola da liquidare)
+- In tutti gli altri casi: MANTIENI o NESSUNA AZIONE
+
+Formato compatto, max 5 righe, importi sempre in EUR:
 🟢 COMPRA €[importo] [ASSET] — [motivo max 8 parole]
 🔴 VENDI [quantità] [ASSET] (€[importo]) — [motivo max 8 parole]
-🟡 MANTIENI [ASSET1], [ASSET2] — [motivo max 8 parole]
+🟡 MANTIENI [ASSET1], [ASSET2] — [motivo breve]
+⚪ NESSUNA AZIONE — [motivo breve]
 
-Regole ferree:
-- Massimo 5 righe
-- Importi sempre in EUR
-- Zero preamboli, zero conclusioni, zero spiegazioni aggiuntive
-- Se budget = 0, suggerisci solo rotazioni interne o MANTIENI`;
+Se budget = 0: mai suggerire acquisti. Solo VENDI se urgente, altrimenti NESSUNA AZIONE.
+Zero preamboli, zero conclusioni. Solo le righe di azione.`;
 
 async function getTelegramAdvice(portfolio, fearGreed, analyses, budgetEur) {
   const userMessage = buildAnalysisMessage(portfolio, fearGreed, analyses, budgetEur);

@@ -1,6 +1,8 @@
 const { getCandles } = require('./historicalData');
 const { calcRSI, calcSMA, calcMACD, calcBollingerBands } = require('./indicators');
 const { getFearGreedIndex } = require('./sentiment');
+const { getNewsSentiment } = require('./newsSentiment');
+const { getGlobalMetrics } = require('./globalMetrics');
 const { analyzePortfolio } = require('./portfolioAnalyzer');
 
 function scoreRSI(rsi) {
@@ -94,7 +96,7 @@ function toAction(signal, symbol, quantity, allocationPct) {
   }
 }
 
-async function analyzeAsset(holding, fgScore) {
+async function analyzeAsset(holding, fgScore, newsData) {
   const candles = await getCandles(holding.symbol, '1D', 200);
   const closes = candles.map(c => c.close);
   const price = closes[closes.length - 1];
@@ -109,12 +111,16 @@ async function analyzeAsset(holding, fgScore) {
   const trendScore = scoreTrend(price, sma50, sma200);
   const macdScore = scoreMACDResult(macd);
   const bbScore = scoreBB(price, bb);
-  const fgContrib = { points: fgScore, note: null };
 
-  const total = rsiScore.points + trendScore.points + macdScore.points + bbScore.points + fgScore;
+  const news = newsData?.[holding.symbol] ?? { score: 0, label: 'neutro', headlines: [], count: 0 };
+  const newsNote = news.count > 0
+    ? `News sentiment: ${news.label} (${news.count} articoli — score ${news.score > 0 ? '+' : ''}${news.score})`
+    : null;
+
+  const total = rsiScore.points + trendScore.points + macdScore.points + bbScore.points + fgScore + news.score;
   const signal = toSignal(total);
 
-  const reasons = [rsiScore.note, trendScore.note, macdScore.note, bbScore.note]
+  const reasons = [rsiScore.note, trendScore.note, macdScore.note, bbScore.note, newsNote]
     .filter(Boolean);
 
   return {
@@ -127,6 +133,7 @@ async function analyzeAsset(holding, fgScore) {
     sma200,
     macd: macd ? { value: macd.macd, histogram: macd.histogram } : null,
     bb,
+    news,
     reasons,
     action: toAction(signal, holding.symbol, holding.quantity, holding.allocationPct),
   };
@@ -138,15 +145,23 @@ async function runAdvisor() {
     getFearGreedIndex(),
   ]);
 
+  const symbols = portfolio.holdings.map(h => h.symbol);
+  const [newsData, globalMetrics] = await Promise.all([
+    getNewsSentiment(symbols),
+    getGlobalMetrics(),
+  ]);
+
   // Sequenziale per rispettare il rate limit di CoinGecko free tier
   const analyses = [];
   for (const h of portfolio.holdings) {
-    analyses.push(await analyzeAsset(h, fearGreed.score));
+    analyses.push(await analyzeAsset(h, fearGreed.score, newsData));
   }
 
   return {
     portfolio,
     fearGreed,
+    globalMetrics,
+    newsData,
     analyses: analyses.sort((a, b) => b.score - a.score),
   };
 }

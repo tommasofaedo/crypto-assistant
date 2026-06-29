@@ -24,16 +24,22 @@ function fgEmoji(value) {
   return '🤑';
 }
 
+function stripHtml(text) {
+  return text.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&');
+}
+
 async function sendTelegram(text) {
   const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
   await axios.post(url, { chat_id: CHAT_ID, text, parse_mode: 'HTML' });
 }
 
 async function main() {
-  const budgetEur = parseFloat(process.argv[2] ?? '0');
+  const args = process.argv.slice(2);
+  const localMode = args.includes('--local');
+  const budgetEur = parseFloat(args.find(a => !a.startsWith('--')) ?? '0');
 
   console.log('Raccolta dati...');
-  const { portfolio, fearGreed, analyses } = await runAdvisor();
+  const { portfolio, fearGreed, globalMetrics, analyses } = await runAdvisor();
 
   // Messaggio 1: snapshot tecnico
   const date = new Date().toLocaleString('it-IT', {
@@ -55,16 +61,23 @@ async function main() {
 
   if (budgetEur > 0) msg1 += `\n💰 Budget: <b>€${fmt(budgetEur)}</b>`;
 
-  await sendTelegram(msg1);
-  console.log('Snapshot inviato.');
-
   // Messaggio 2: raccomandazioni AI
   console.log('Generazione raccomandazioni AI...');
-  const aiText = await getTelegramAdvice(portfolio, fearGreed, analyses, budgetEur);
-
+  const aiText = await getTelegramAdvice(portfolio, fearGreed, analyses, budgetEur, globalMetrics);
   const msg2 = `🤖 <b>MARCO FERRETTI — Raccomandazioni</b>\n\n${aiText}`;
-  await sendTelegram(msg2);
-  console.log('Raccomandazioni inviate. Report completato.');
+
+  if (localMode) {
+    console.log('\n' + '═'.repeat(55));
+    console.log(stripHtml(msg1));
+    console.log('─'.repeat(55));
+    console.log(stripHtml(msg2));
+    console.log('═'.repeat(55) + '\n');
+  } else {
+    await sendTelegram(msg1);
+    console.log('Snapshot inviato.');
+    await sendTelegram(msg2);
+    console.log('Raccomandazioni inviate. Report completato.');
+  }
 }
 
 main().catch(err => {

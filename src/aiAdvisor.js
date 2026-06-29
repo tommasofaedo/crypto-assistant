@@ -23,7 +23,7 @@ PRIORITÀ OPERAZIONI: numera le operazioni in ordine di urgenza/convenienza.
 
 TONO: da professionista esperto a cliente stimato. Diretti, concreti, senza mezze misure. Se un asset è da vendere dillo chiaramente. Se un'analisi suggerisce cautela, spiegane il perché con i numeri alla mano.`;
 
-function buildAnalysisMessage(portfolio, fearGreed, analyses, budgetEur) {
+function buildAnalysisMessage(portfolio, fearGreed, analyses, budgetEur, globalMetrics) {
   const holdingsText = portfolio.holdings.map(h => {
     const analysis = analyses.find(a => a.symbol === h.symbol);
     if (!analysis) return '';
@@ -50,6 +50,10 @@ function buildAnalysisMessage(portfolio, fearGreed, analyses, budgetEur) {
     }
     text += `\n- Analisi tecnica: ${analysis.reasons.join('; ')}`;
 
+    if (analysis.news?.headlines?.length > 0) {
+      text += `\n- Notizie recenti: ${analysis.news.headlines.join(' | ')}`;
+    }
+
     return text;
   }).filter(Boolean).join('\n');
 
@@ -67,6 +71,13 @@ Budget disponibile per nuovi acquisti: €${budgetEur}
 ## SENTIMENT DI MERCATO
 Fear & Greed Index: ${fearGreed.value}/100 (${fearGreed.label})
 Impatto calcolato sullo score tecnico: ${fearGreed.score > 0 ? '+' : ''}${fearGreed.score} punti
+${globalMetrics ? `
+## METRICHE GLOBALI (CoinMarketCap)
+Market Cap totale: $${(globalMetrics.totalMarketCapUsd / 1e12).toFixed(2)}T (${globalMetrics.totalMarketCapChange24h >= 0 ? '+' : ''}${globalMetrics.totalMarketCapChange24h?.toFixed(2)}% 24h)
+BTC Dominance: ${globalMetrics.btcDominance?.toFixed(1)}% | ETH Dominance: ${globalMetrics.ethDominance?.toFixed(1)}%
+Volume 24h: $${(globalMetrics.totalVolume24hUsd / 1e9).toFixed(0)}B
+DeFi Market Cap: $${(globalMetrics.defiMarketCapUsd / 1e9).toFixed(0)}B
+Altcoin Season Index: ${globalMetrics.altcoinSeasonIndex ?? 'n/d'}/100 (${globalMetrics.altcoinSeasonLabel ?? 'n/d'}) — sopra 75 = altseason, sotto 25 = BTC season` : ''}
 
 ## ANALISI TECNICA PER ASSET
 ${holdingsText}
@@ -78,8 +89,8 @@ Considera il budget disponibile di €${budgetEur} per eventuali acquisti.
 Ricorda: voglio sapere COSA fare ESATTAMENTE, con QUANTO e QUANDO.`;
 }
 
-async function getAIAdvice(portfolio, fearGreed, analyses, budgetEur) {
-  const userMessage = buildAnalysisMessage(portfolio, fearGreed, analyses, budgetEur);
+async function getAIAdvice(portfolio, fearGreed, analyses, budgetEur, globalMetrics) {
+  const userMessage = buildAnalysisMessage(portfolio, fearGreed, analyses, budgetEur, globalMetrics);
 
   process.stdout.write('\n\033[1;36m╔══════════════════════════════════════════════════════════╗\033[0m\n');
   process.stdout.write('\033[1;36m║     CONSULENTE AI — Marco Ferretti, CFA                  ║\033[0m\n');
@@ -149,8 +160,8 @@ FORMATO OBBLIGATORIO (max 4 righe per sezione):
 
 Zero preamboli, zero conclusioni. Solo le due sezioni.`;
 
-async function getTelegramAdvice(portfolio, fearGreed, analyses, budgetEur) {
-  const userMessage = buildAnalysisMessage(portfolio, fearGreed, analyses, budgetEur);
+async function getTelegramAdvice(portfolio, fearGreed, analyses, budgetEur, globalMetrics) {
+  const userMessage = buildAnalysisMessage(portfolio, fearGreed, analyses, budgetEur, globalMetrics);
 
   const response = await client.messages.create({
     model: 'claude-opus-4-8',

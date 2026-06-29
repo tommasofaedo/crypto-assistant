@@ -138,9 +138,11 @@ async function runAdvisor() {
     getFearGreedIndex(),
   ]);
 
-  const analyses = await Promise.all(
-    portfolio.holdings.map(h => analyzeAsset(h, fearGreed.score))
-  );
+  // Sequenziale per rispettare il rate limit di CoinGecko free tier
+  const analyses = [];
+  for (const h of portfolio.holdings) {
+    analyses.push(await analyzeAsset(h, fearGreed.score));
+  }
 
   return {
     portfolio,

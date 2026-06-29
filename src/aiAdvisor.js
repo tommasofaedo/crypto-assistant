@@ -157,7 +157,7 @@ async function getTelegramAdvice(portfolio, fearGreed, analyses, budgetEur) {
 
   const response = await client.messages.create({
     model: 'claude-opus-4-8',
-    max_tokens: 1024,
+    max_tokens: 4096,
     thinking: { type: 'adaptive' },
     system: TELEGRAM_PROMPT,
     messages: [{ role: 'user', content: userMessage }],

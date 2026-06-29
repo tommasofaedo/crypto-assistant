@@ -1,40 +1,43 @@
 const axios = require('axios');
-const { BINANCE_SYMBOLS, COINGECKO_IDS } = require('./marketData');
+const { COINGECKO_IDS } = require('./marketData');
 
-const BINANCE_BASE  = 'https://api.binance.com/api/v3';
 const COINGECKO_BASE = 'https://api.coingecko.com/api/v3';
 
-async function getCandles(symbol) {
-  // Asset su Binance
-  if (BINANCE_SYMBOLS[symbol]) {
-    const response = await axios.get(`${BINANCE_BASE}/klines`, {
-      params: { symbol: BINANCE_SYMBOLS[symbol], interval: '1d', limit: 200 },
-    });
-    return response.data.map(c => ({
-      timestamp: c[0],
-      open:   parseFloat(c[1]),
-      high:   parseFloat(c[2]),
-      low:    parseFloat(c[3]),
-      close:  parseFloat(c[4]),
-      volume: parseFloat(c[5]),
-    }));
-  }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-  // Fallback CoinGecko per asset non su Binance (es. CRO)
-  if (COINGECKO_IDS[symbol]) {
-    const response = await axios.get(
-      `${COINGECKO_BASE}/coins/${COINGECKO_IDS[symbol]}/market_chart`,
-      {
-        params: { vs_currency: 'usd', days: 200 },
+async function cgGet(path, params, retries = 4) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await axios.get(`${COINGECKO_BASE}${path}`, {
+        params,
         headers: { 'User-Agent': 'crypto-assistant/1.0' },
+        timeout: 15000,
+      });
+    } catch (err) {
+      if (err.response?.status === 429 && attempt < retries) {
+        const wait = 15000 * attempt;
+        console.log(`[${path}] rate limit, attendo ${wait / 1000}s...`);
+        await sleep(wait);
+      } else {
+        throw err;
       }
-    );
-    return response.data.prices.map(([timestamp, close]) => ({
-      timestamp, open: close, high: close, low: close, close, volume: 0,
-    }));
+    }
   }
+}
 
-  throw new Error(`Nessuna fonte dati configurata per ${symbol}`);
+async function getCandles(symbol) {
+  const coinId = COINGECKO_IDS[symbol];
+  if (!coinId) throw new Error(`Nessuna fonte configurata per ${symbol}`);
+
+  // market_chart con days>90 restituisce dati giornalieri automaticamente
+  const res = await cgGet(`/coins/${coinId}/market_chart`, { vs_currency: 'usd', days: 200 });
+
+  // Pausa tra asset per rispettare il rate limit (in produzione: 1 run/giorno, nessun problema)
+  await sleep(3000);
+
+  return res.data.prices.map(([timestamp, close]) => ({
+    timestamp, open: close, high: close, low: close, close, volume: 0,
+  }));
 }
 
 module.exports = { getCandles };

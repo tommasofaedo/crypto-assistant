@@ -1,95 +1,68 @@
 const axios = require('axios');
 
-const BINANCE_BASE = 'https://api.binance.com/api/v3';
 const COINGECKO_BASE = 'https://api.coingecko.com/api/v3';
 
-// Asset su Binance
-const BINANCE_SYMBOLS = {
-  BTC:  'BTCUSDT',
-  ETH:  'ETHUSDT',
-  SOL:  'SOLUSDT',
-  XRP:  'XRPUSDT',
-  AAVE: 'AAVEUSDT',
-  LINK: 'LINKUSDT',
-  UNI:  'UNIUSDT',
+const COINGECKO_IDS = {
+  BTC:  'bitcoin',
+  ETH:  'ethereum',
+  SOL:  'solana',
+  XRP:  'ripple',
+  AAVE: 'aave',
+  CRO:  'crypto-com-chain',
+  LINK: 'chainlink',
+  UNI:  'uniswap',
 };
 
-// Asset non su Binance → CoinGecko
-const COINGECKO_IDS = {
-  CRO: 'crypto-com-chain',
-};
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function cgGet(path, params, retries = 4) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await axios.get(`${COINGECKO_BASE}${path}`, {
+        params,
+        headers: { 'User-Agent': 'crypto-assistant/1.0' },
+        timeout: 15000,
+      });
+    } catch (err) {
+      if (err.response?.status === 429 && attempt < retries) {
+        const wait = 15000 * attempt;
+        console.log(`CoinGecko rate limit, attendo ${wait / 1000}s...`);
+        await sleep(wait);
+      } else {
+        throw err;
+      }
+    }
+  }
+}
 
 async function getUsdEurRate() {
-  const response = await axios.get('https://api.frankfurter.app/latest?from=USD&to=EUR');
-  return response.data.rates.EUR;
+  const r = await axios.get('https://api.frankfurter.app/latest?from=USD&to=EUR', { timeout: 10000 });
+  return r.data.rates.EUR;
 }
 
 async function getPrices(symbols) {
-  const binanceSyms = symbols.filter(s => BINANCE_SYMBOLS[s]);
-  const geckoSyms   = symbols.filter(s => COINGECKO_IDS[s]);
+  const ids = symbols.map(s => COINGECKO_IDS[s]).filter(Boolean).join(',');
+  const [marketRes, eurRate] = await Promise.all([
+    cgGet('/coins/markets', { vs_currency: 'eur', ids, price_change_percentage: '24h' }),
+    getUsdEurRate(),
+  ]);
 
-  const requests = [getUsdEurRate()];
-
-  if (binanceSyms.length > 0) {
-    requests.push(
-      axios.get(`${BINANCE_BASE}/ticker/24hr`, {
-        params: { symbols: JSON.stringify(binanceSyms.map(s => BINANCE_SYMBOLS[s])) },
-      })
-    );
+  const idToSym = Object.fromEntries(Object.entries(COINGECKO_IDS).map(([s, id]) => [id, s]));
+  const prices = {};
+  for (const coin of marketRes.data) {
+    const sym = idToSym[coin.id];
+    if (!sym) continue;
+    const priceEur = coin.current_price;
+    prices[sym] = {
+      priceEur,
+      priceUsd: priceEur / eurRate,
+      change24hPct: coin.price_change_percentage_24h ?? 0,
+      high24hUsd: (coin.high_24h ?? priceEur) / eurRate,
+      low24hUsd:  (coin.low_24h  ?? priceEur) / eurRate,
+      volume24hUsd: coin.total_volume ?? 0,
+    };
   }
-
-  if (geckoSyms.length > 0) {
-    const ids = geckoSyms.map(s => COINGECKO_IDS[s]).join(',');
-    requests.push(
-      axios.get(`${COINGECKO_BASE}/coins/markets`, {
-        params: { vs_currency: 'eur', ids },
-        headers: { 'User-Agent': 'crypto-assistant/1.0' },
-      })
-    );
-  }
-
-  const results = await Promise.all(requests);
-  const eurRate = results[0];
-  const prices  = {};
-
-  // Binance
-  if (binanceSyms.length > 0) {
-    const binanceToSym = Object.fromEntries(Object.entries(BINANCE_SYMBOLS).map(([s, b]) => [b, s]));
-    for (const ticker of results[1].data) {
-      const symbol = binanceToSym[ticker.symbol];
-      if (!symbol) continue;
-      const priceUsd = parseFloat(ticker.lastPrice);
-      prices[symbol] = {
-        priceUsd,
-        priceEur: priceUsd * eurRate,
-        change24hPct: parseFloat(ticker.priceChangePercent),
-        high24hUsd: parseFloat(ticker.highPrice),
-        low24hUsd: parseFloat(ticker.lowPrice),
-        volume24hUsd: parseFloat(ticker.quoteVolume),
-      };
-    }
-  }
-
-  // CoinGecko (solo per asset non su Binance)
-  if (geckoSyms.length > 0) {
-    const geckoToSym = Object.fromEntries(Object.entries(COINGECKO_IDS).map(([s, id]) => [id, s]));
-    const geckoResult = results[binanceSyms.length > 0 ? 2 : 1];
-    for (const coin of geckoResult.data) {
-      const symbol = geckoToSym[coin.id];
-      if (!symbol) continue;
-      const priceEur = coin.current_price;
-      prices[symbol] = {
-        priceEur,
-        priceUsd: priceEur / eurRate,
-        change24hPct: coin.price_change_percentage_24h ?? 0,
-        high24hUsd: (coin.high_24h ?? priceEur) / eurRate,
-        low24hUsd: (coin.low_24h ?? priceEur) / eurRate,
-        volume24hUsd: coin.total_volume ?? 0,
-      };
-    }
-  }
-
   return { prices, eurRate };
 }
 
-module.exports = { getPrices, BINANCE_SYMBOLS, COINGECKO_IDS };
+module.exports = { getPrices, COINGECKO_IDS };

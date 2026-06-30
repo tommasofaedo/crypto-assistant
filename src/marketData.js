@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 const COINGECKO_BASE = 'https://api.coingecko.com/api/v3';
-const CRYPTOCOM_BASE = 'https://api.crypto.com/exchange/v1/public';
+const CRYPTOCOM_V2   = 'https://api.crypto.com/v2/public';
 
 const COINGECKO_IDS = {
   BTC:  'bitcoin',
@@ -14,7 +14,6 @@ const COINGECKO_IDS = {
   UNI:  'uniswap',
 };
 
-// Crypto.com instrument names for public ticker endpoint
 const CRYPTOCOM_INSTRUMENTS = {
   BTC:  'BTC_USD',
   ETH:  'ETH_USD',
@@ -54,73 +53,62 @@ async function getUsdEurRate() {
 }
 
 async function getCryptoComPrices(symbols, eurRate) {
+  // Fetch all tickers in one call, then filter — no per-symbol rate limit risk
+  const r = await axios.get(`${CRYPTOCOM_V2}/get-ticker`, { timeout: 15000 });
+  const allTickers = r.data?.result?.data ?? [];
+  const byInstrument = Object.fromEntries(allTickers.map(t => [t.i, t]));
+
   const prices = {};
-  const results = await Promise.allSettled(
-    symbols.map(async sym => {
-      const instrument = CRYPTOCOM_INSTRUMENTS[sym];
-      if (!instrument) return;
-      const r = await axios.get(`${CRYPTOCOM_BASE}/get-ticker`, {
-        params: { instrument_name: instrument },
-        timeout: 10000,
-      });
-      const t = r.data?.result?.data?.[0];
-      if (!t) return;
-      const priceUsd = parseFloat(t.a); // best ask as current price
-      prices[sym] = {
-        priceEur: priceUsd * eurRate,
-        priceUsd,
-        change24hPct: parseFloat(t.c) * 100, // c = change percentage as decimal
-        high24hUsd: parseFloat(t.h),
-        low24hUsd:  parseFloat(t.l),
-        volume24hUsd: parseFloat(t.v) * priceUsd,
-      };
-    })
-  );
-  // Log any individual failures silently (partial results are fine)
-  results.forEach((r, i) => {
-    if (r.status === 'rejected') console.log(`[Crypto.com] ${symbols[i]}: ${r.reason?.message}`);
-  });
+  for (const sym of symbols) {
+    const instrument = CRYPTOCOM_INSTRUMENTS[sym];
+    const t = instrument ? byInstrument[instrument] : null;
+    if (!t) { console.log(`[Crypto.com] ${sym}: strumento non trovato`); continue; }
+    const priceUsd = parseFloat(t.a);
+    prices[sym] = {
+      priceEur:     priceUsd * eurRate,
+      priceUsd,
+      change24hPct: parseFloat(t.c) * 100,
+      high24hUsd:   parseFloat(t.h),
+      low24hUsd:    parseFloat(t.l),
+      volume24hUsd: parseFloat(t.v) * priceUsd,
+    };
+  }
   return prices;
 }
 
 async function getPrices(symbols) {
-  const [eurRate] = await Promise.all([getUsdEurRate()]);
+  const eurRate = await getUsdEurRate();
 
-  try {
-    const ids = symbols.map(s => COINGECKO_IDS[s]).filter(Boolean).join(',');
-    const marketRes = await cgGet('/coins/markets', { vs_currency: 'eur', ids, price_change_percentage: '24h' });
+  // Primary: Crypto.com Exchange (no rate limit issues)
+  const prices = await getCryptoComPrices(symbols, eurRate);
 
-    const idToSym = Object.fromEntries(Object.entries(COINGECKO_IDS).map(([s, id]) => [id, s]));
-    const prices = {};
-    for (const coin of marketRes.data) {
-      const sym = idToSym[coin.id];
-      if (!sym) continue;
-      const priceEur = coin.current_price;
-      prices[sym] = {
-        priceEur,
-        priceUsd: priceEur / eurRate,
-        change24hPct: coin.price_change_percentage_24h ?? 0,
-        high24hUsd: (coin.high_24h ?? priceEur) / eurRate,
-        low24hUsd:  (coin.low_24h  ?? priceEur) / eurRate,
-        volume24hUsd: coin.total_volume ?? 0,
-      };
+  // Fallback: CoinGecko for any symbols Crypto.com didn't return
+  const missing = symbols.filter(s => !prices[s]);
+  if (missing.length > 0) {
+    console.log(`[CoinGecko fallback] ${missing.join(', ')}`);
+    try {
+      const ids = missing.map(s => COINGECKO_IDS[s]).filter(Boolean).join(',');
+      const marketRes = await cgGet('/coins/markets', { vs_currency: 'eur', ids, price_change_percentage: '24h' });
+      const idToSym = Object.fromEntries(Object.entries(COINGECKO_IDS).map(([s, id]) => [id, s]));
+      for (const coin of marketRes.data) {
+        const sym = idToSym[coin.id];
+        if (!sym) continue;
+        const priceEur = coin.current_price;
+        prices[sym] = {
+          priceEur,
+          priceUsd: priceEur / eurRate,
+          change24hPct: coin.price_change_percentage_24h ?? 0,
+          high24hUsd: (coin.high_24h ?? priceEur) / eurRate,
+          low24hUsd:  (coin.low_24h  ?? priceEur) / eurRate,
+          volume24hUsd: coin.total_volume ?? 0,
+        };
+      }
+    } catch (err) {
+      console.log(`CoinGecko non disponibile: ${err.message}`);
     }
-
-    // Fill any missing symbols from Crypto.com
-    const missing = symbols.filter(s => !prices[s]);
-    if (missing.length > 0) {
-      console.log(`[Crypto.com fallback] ${missing.join(', ')}`);
-      const fallback = await getCryptoComPrices(missing, eurRate);
-      Object.assign(prices, fallback);
-    }
-
-    return { prices, eurRate };
-  } catch (err) {
-    // CoinGecko completely unavailable — fall back entirely to Crypto.com
-    console.log(`CoinGecko non disponibile (${err.message}), uso Crypto.com...`);
-    const prices = await getCryptoComPrices(symbols, eurRate);
-    return { prices, eurRate };
   }
+
+  return { prices, eurRate };
 }
 
-module.exports = { getPrices, getCryptoComPrices, COINGECKO_IDS };
+module.exports = { getPrices, getCryptoComPrices, COINGECKO_IDS, CRYPTOCOM_INSTRUMENTS };

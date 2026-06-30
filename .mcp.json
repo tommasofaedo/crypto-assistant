@@ -3,6 +3,10 @@
     "crypto-market-data": {
       "type": "http",
       "url": "https://mcp.crypto.com/market-data/mcp"
+    },
+    "cdcx": {
+      "command": "cdcx",
+      "args": ["mcp"]
     }
   }
 }

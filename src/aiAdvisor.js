@@ -132,40 +132,70 @@ async function getAIAdvice(portfolio, fearGreed, analyses, budgetEur, globalMetr
   return final;
 }
 
-const TELEGRAM_PROMPT = `Sei Marco Ferretti, consulente crypto. Genera SEMPRE due sezioni distinte nello stesso messaggio.
+// Asset con vincolo di non-vendita (strategici, non di trading)
+const NO_SELL = new Set(['CRO', 'LINK', 'UNI']);
 
-━━━ SEZIONE 1: 🔵 BASSO RISCHIO ━━━
-Agisci solo con segnali molto forti (tutte le condizioni):
-- COMPRA: score ≥ +30 E RSI < 38 E budget > 0
-- VENDI: score ≤ -30 E RSI > 62 (o posizione < €20 da eliminare)
-- Altrimenti scrivi: ⚪ NESSUNA AZIONE — [motivo breve]
+// Calcola in codice quali azioni superano le soglie — nessuna delega all'AI
+function computeEligibleActions(analyses, portfolio, budgetEur) {
+  const blue = [], orange = [];
 
-━━━ SEZIONE 2: 🟠 MEDIO-BASSO RISCHIO ━━━
-Agisci con segnali moderati:
-- COMPRA: score ≥ +20 E RSI < 42 E budget > 0
-- VENDI: score ≤ -20 E RSI > 58
-- Altrimenti scrivi: ⚪ NESSUNA AZIONE — [motivo breve]
+  for (const a of analyses) {
+    const h = portfolio.holdings.find(h => h.symbol === a.symbol);
+    if (!h) continue;
+    const sellEur = Math.round(h.valueEur * 0.25);
+    const canSell = !NO_SELL.has(a.symbol);
+    const s = a.score, r = a.rsi;
 
-REGOLE DI SIZING (valide per entrambe le sezioni):
-- ACQUISTO: €10–30 per asset, mai oltre €100 totali al giorno. DCA preferito.
-- VENDITA: max 25-30% della posizione per volta. Aggiungi "rivaluta tra 2 giorni".
-- Se budget = 0: nessun acquisto in nessuna sezione.
+    if (s >= 30 && r < 38 && budgetEur > 0)
+      blue.push(`COMPRA ${a.symbol} (score +${s}, RSI ${r.toFixed(1)})`);
+    if (s <= -30 && r > 62 && canSell)
+      blue.push(`VENDI 25% ${a.symbol} ~€${sellEur} (score ${s}, RSI ${r.toFixed(1)}) — rivaluta tra 2 giorni`);
 
-FORMATO OBBLIGATORIO (max 4 righe per sezione):
+    if (s >= 20 && r < 42 && budgetEur > 0)
+      orange.push(`COMPRA ${a.symbol} (score +${s}, RSI ${r.toFixed(1)})`);
+    if (s <= -20 && r > 58 && canSell)
+      orange.push(`VENDI 25% ${a.symbol} ~€${sellEur} (score ${s}, RSI ${r.toFixed(1)}) — rivaluta tra 2 giorni`);
+  }
+
+  return { blue, orange };
+}
+
+const TELEGRAM_PROMPT = `Sei Marco Ferretti, consulente crypto. Le azioni ammissibili sono già state calcolate dal sistema e ti vengono passate nella sezione "AZIONI QUALIFICATE".
+
+Il tuo compito:
+1. Per ogni sezione, riformula l'azione con l'emoji corretta e una motivazione tecnica concisa (max 8 parole).
+2. Se la sezione dice "NESSUNA AZIONE" → scrivi esattamente: ⚪ NESSUNA AZIONE — [motivo breve]
+3. Per COMPRA: specifica €10–30 per asset, DCA preferito.
+4. NON aggiungere azioni non presenti nell'elenco. NON rimuovere azioni presenti.
+
+EMOJI: 🟢 COMPRA, 🔴 VENDI, ⚪ NESSUNA AZIONE
+
+FORMATO OBBLIGATORIO:
 🔵 BASSO RISCHIO
-🟢/🔴/🟡/⚪ [azione] — [motivo max 8 parole]
+🟢/🔴/⚪ [azione] — [motivo]
 
 🟠 MEDIO-BASSO RISCHIO
-🟢/🔴/🟡/⚪ [azione] — [motivo max 8 parole]
+🟢/🔴/⚪ [azione] — [motivo]
 
 Zero preamboli, zero conclusioni. Solo le due sezioni.`;
 
 async function getTelegramAdvice(portfolio, fearGreed, analyses, budgetEur, globalMetrics) {
-  const userMessage = buildAnalysisMessage(portfolio, fearGreed, analyses, budgetEur, globalMetrics);
+  const eligible = computeEligibleActions(analyses, portfolio, budgetEur);
+
+  const fmtActions = (arr) => arr.length
+    ? arr.map(a => `• ${a}`).join('\n')
+    : 'NESSUNA AZIONE';
+
+  const actionsBlock = `\n## AZIONI QUALIFICATE — rispettale esattamente\n` +
+    `🔵 BASSO RISCHIO:\n${fmtActions(eligible.blue)}\n\n` +
+    `🟠 MEDIO-BASSO RISCHIO:\n${fmtActions(eligible.orange)}`;
+
+  const userMessage = buildAnalysisMessage(portfolio, fearGreed, analyses, budgetEur, globalMetrics)
+    + actionsBlock;
 
   const response = await client.messages.create({
     model: 'claude-opus-4-8',
-    max_tokens: 1024,
+    max_tokens: 512,
     system: TELEGRAM_PROMPT,
     messages: [{ role: 'user', content: userMessage }],
   });

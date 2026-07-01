@@ -43,6 +43,8 @@ async function send(chatId, text) {
   return api('sendMessage', { chat_id: chatId, text, parse_mode: 'HTML' });
 }
 
+let isAnalyzing = false;
+
 function parseBudget(text) {
   const match = text.match(/(\d+(?:[.,]\d+)?)/);
   return match ? parseFloat(match[1].replace(',', '.')) : 0;
@@ -54,6 +56,12 @@ function isAnalysisRequest(text) {
 }
 
 async function handleAnalysis(chatId, budget) {
+  if (isAnalyzing) {
+    await send(chatId, '⏳ Analisi già in corso, attendi 30 secondi...');
+    return;
+  }
+  isAnalyzing = true;
+
   // Progress message
   const prog = await api('sendMessage', {
     chat_id: chatId,
@@ -105,6 +113,8 @@ async function handleAnalysis(chatId, budget) {
   } catch (err) {
     await editProg(`❌ <b>Errore durante l'analisi</b>\n\n${err.message}`);
     console.error('Errore analisi:', err.message);
+  } finally {
+    isAnalyzing = false;
   }
 }
 
@@ -143,6 +153,16 @@ async function processUpdate(update) {
 async function poll() {
   let offset = 0;
   console.log(`🤖 Bot Telegram avviato — chat autorizzata: ${ALLOWED_CHAT}`);
+
+  // Salta i messaggi già in coda prima dell'avvio (evita di processare comandi vecchi)
+  try {
+    const pending = await api('getUpdates', { timeout: 0 });
+    if (pending?.length) {
+      offset = pending[pending.length - 1].update_id + 1;
+      console.log(`Saltati ${pending.length} messaggio/i in coda dall'avvio precedente.`);
+    }
+  } catch { /* ignora errori startup */ }
+
   console.log('In ascolto per messaggi... (Ctrl+C per fermare)\n');
 
   while (true) {

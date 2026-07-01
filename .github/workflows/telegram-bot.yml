@@ -1,10 +1,10 @@
 name: Telegram Bot (interattivo)
 
 on:
-  workflow_dispatch:    # trigger manuale da GitHub quando il PC è spento
+  workflow_dispatch:    # trigger manuale da GitHub
   schedule:
-    - cron: '0 6 * * 6'   # sabato 08:00 (CEST)
-    - cron: '0 6 * * 0'   # domenica 08:00 (CEST)
+    - cron: '0 6 * * *'    # ogni giorno 08:00 CEST — copertura mattutina (08:00–13:45)
+    - cron: '0 18 * * *'   # ogni giorno 20:00 CEST — copertura serale  (20:00–01:45)
 
 jobs:
   bot:

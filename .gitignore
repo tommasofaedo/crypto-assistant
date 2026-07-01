@@ -2,3 +2,5 @@
 key.txt
 node_modules/
 .mcp.json
+bot.log
+bot-error.log

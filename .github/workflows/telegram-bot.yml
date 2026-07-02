@@ -3,13 +3,17 @@ name: Telegram Bot (interattivo)
 on:
   workflow_dispatch:    # trigger manuale da GitHub
   schedule:
-    - cron: '0 6 * * *'    # ogni giorno 08:00 CEST — copertura mattutina (08:00–13:45)
-    - cron: '0 18 * * *'   # ogni giorno 20:00 CEST — copertura serale  (20:00–01:45)
+    - cron: '0 3 * * *'    # 05:00 CEST — finestra 1 (05:00–10:00)
+    - cron: '30 8 * * *'   # 10:30 CEST — finestra 2 (10:30–15:30)
+    - cron: '0 14 * * *'   # 16:00 CEST — finestra 3 (16:00–21:00)
+    - cron: '30 19 * * *'  # 21:30 CEST — finestra 4 (21:30–02:30)
+    # NB: in inverno (CET=UTC+1) gli orari slittano di 1h prima in orario italiano
+    # Copertura: 20h/giorno — gap 30min tra sessioni + notte scoperta 02:30–05:00
 
 jobs:
   bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 350   # ~5h 50min, poi il job finisce e riparte il weekend successivo
+    timeout-minutes: 310   # 5h10min — margine sopra i 18000s del timeout interno
 
     steps:
       - uses: actions/checkout@v4
@@ -22,9 +26,9 @@ jobs:
         run: npm install
 
       - name: Run Telegram bot
-        # timeout 20700s = 5h 45min — si chiude prima del limite GitHub (6h)
+        # 18000s = 5h esatte — uguale per tutte le sessioni
         # "|| true" evita che il workflow fallisca quando timeout termina il processo
-        run: timeout 20700 node telegram-bot.js || true
+        run: timeout 18000 node telegram-bot.js || true
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}

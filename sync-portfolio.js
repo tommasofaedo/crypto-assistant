@@ -56,7 +56,7 @@ async function main() {
 
   console.log(`\nPortafoglio aggiornato: ${updated}/${portfolio.holdings.length} asset sincronizzati`);
   if (notFound.length > 0) {
-    console.log(`Non trovati sull'Exchange (forse sono sull'App): ${notFound.join(', ')}`);
+    console.log(`Non trovati sull'Exchange (sono sull'App): ${notFound.join(', ')}`);
   }
   console.log(`File: ${PORTFOLIO_PATH}`);
 }

@@ -33,7 +33,7 @@ async function main() {
   console.log(`Impatto score: ${fearGreed.score > 0 ? '+' : ''}${fearGreed.score} punti`);
 
   if (globalMetrics) {
-    console.log(`\nMERCATO GLOBALE (CMC)`);
+    console.log(`\nMERCATO GLOBALE (CoinGecko)`);
     console.log(`Market Cap: $${(globalMetrics.totalMarketCapUsd / 1e12).toFixed(2)}T  |  24h: ${globalMetrics.totalMarketCapChange24h >= 0 ? '+' : ''}${globalMetrics.totalMarketCapChange24h?.toFixed(2)}%`);
     console.log(`BTC Dom: ${globalMetrics.btcDominance?.toFixed(1)}%  |  ETH Dom: ${globalMetrics.ethDominance?.toFixed(1)}%  |  DeFi: $${(globalMetrics.defiMarketCapUsd / 1e9).toFixed(0)}B`);
     if (globalMetrics.altcoinSeasonIndex != null) {
@@ -61,6 +61,15 @@ async function main() {
     }
     if (a.bb) {
       console.log(`  Bollinger: $${fmt(a.bb.lower, dec)} – $${fmt(a.bb.upper, dec)} (banda ${fmt(a.bb.bandwidth, 1)}%)`);
+    }
+    if (a.marketCapRank != null) {
+      console.log(`  Market Cap Rank: #${a.marketCapRank}`);
+    }
+    if (a.athChangePct != null) {
+      console.log(`  Distanza ATH: ${a.athChangePct.toFixed(1)}%`);
+    }
+    if (a.priceChange7dPct != null) {
+      console.log(`  7gg: ${a.priceChange7dPct >= 0 ? '+' : ''}${fmt(a.priceChange7dPct)}%`);
     }
     console.log(`  Analisi: ${a.reasons.join('; ')}`);
     if (a.news?.headlines?.length > 0) {

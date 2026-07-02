@@ -48,6 +48,15 @@ function buildAnalysisMessage(portfolio, fearGreed, analyses, budgetEur, globalM
     if (analysis.bb) {
       text += `\n- Bollinger Bands: $${fmt(analysis.bb.lower, dec)} – $${fmt(analysis.bb.upper, dec)} (banda: ${fmt(analysis.bb.bandwidth, 1)}%)`;
     }
+    if (analysis.marketCapRank != null) {
+      text += `\n- Market Cap Rank: #${analysis.marketCapRank}`;
+    }
+    if (analysis.athChangePct != null) {
+      text += `\n- Distanza ATH: ${analysis.athChangePct.toFixed(1)}%`;
+    }
+    if (analysis.priceChange7dPct != null) {
+      text += `\n- Variazione 7gg: ${analysis.priceChange7dPct >= 0 ? '+' : ''}${analysis.priceChange7dPct.toFixed(2)}%`;
+    }
     text += `\n- Analisi tecnica: ${analysis.reasons.join('; ')}`;
 
     if (analysis.news?.headlines?.length > 0) {

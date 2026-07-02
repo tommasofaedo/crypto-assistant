@@ -111,4 +111,33 @@ async function getPrices(symbols) {
   return { prices, eurRate };
 }
 
-module.exports = { getPrices, getCryptoComPrices, COINGECKO_IDS, CRYPTOCOM_INSTRUMENTS };
+async function getCoinGeckoEnrichment(symbols) {
+  const ids = symbols.map(s => COINGECKO_IDS[s]).filter(Boolean).join(',');
+  if (!ids) return {};
+  try {
+    const r = await cgGet('/coins/markets', {
+      vs_currency: 'usd',
+      ids,
+      price_change_percentage: '7d',
+      sparkline: false,
+    });
+    const idToSym = Object.fromEntries(Object.entries(COINGECKO_IDS).map(([s, id]) => [id, s]));
+    const result = {};
+    for (const coin of r.data) {
+      const sym = idToSym[coin.id];
+      if (!sym) continue;
+      result[sym] = {
+        athUsd:          coin.ath ?? null,
+        athChangePct:    coin.ath_change_percentage ?? null,
+        marketCapRank:   coin.market_cap_rank ?? null,
+        priceChange7dPct: coin.price_change_percentage_7d_in_currency ?? null,
+      };
+    }
+    return result;
+  } catch (err) {
+    console.warn('[CoinGecko enrichment] Skip:', err.message);
+    return {};
+  }
+}
+
+module.exports = { getPrices, getCryptoComPrices, getCoinGeckoEnrichment, COINGECKO_IDS, CRYPTOCOM_INSTRUMENTS };

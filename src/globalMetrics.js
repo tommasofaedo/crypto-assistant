@@ -1,33 +1,40 @@
 const axios = require('axios');
 
-const BASE = 'https://pro-api.coinmarketcap.com/public-api';
+const COINGECKO_BASE = 'https://api.coingecko.com/api/v3';
+const HEADERS = { 'User-Agent': 'crypto-assistant/1.0' };
 
 async function getGlobalMetrics() {
   try {
-    const [metricsRes, altcoinRes] = await Promise.all([
-      axios.get(`${BASE}/v1/global-metrics/quotes/latest`, { timeout: 10000 }),
-      axios.get(`${BASE}/v1/altcoin-season-index/latest`, { timeout: 10000 }),
-    ]);
+    const r = await axios.get(`${COINGECKO_BASE}/global`, { headers: HEADERS, timeout: 10000 });
+    const d = r.data.data;
+    const btcDom = d.market_cap_percentage?.btc ?? null;
+    const ethDom = d.market_cap_percentage?.eth ?? null;
 
-    const d = metricsRes.data.data;
-    const usd = d.quote?.USD ?? {};
-    const alt = altcoinRes.data.data;
-    const altIdx = alt?.altcoin_index ?? null;
-    const altLabel = altIdx == null ? null
-      : altIdx >= 75 ? 'Altcoin Season'
-      : altIdx <= 25 ? 'Bitcoin Season'
+    // Proxy altcoin season da BTC dominance (50%→50, 35%→74, 65%→26)
+    const altcoinSeasonIndex = btcDom != null
+      ? Math.max(0, Math.min(100, Math.round(130 - btcDom * 1.6)))
+      : null;
+    const altcoinSeasonLabel = altcoinSeasonIndex == null ? null
+      : altcoinSeasonIndex >= 75 ? 'Altcoin Season'
+      : altcoinSeasonIndex <= 25 ? 'Bitcoin Season'
       : 'Neutro';
 
+    let defiMarketCapUsd = null;
+    try {
+      const defiR = await axios.get(`${COINGECKO_BASE}/global/decentralized_finance_defi`, { headers: HEADERS, timeout: 10000 });
+      defiMarketCapUsd = parseFloat(defiR.data.data?.defi_market_cap ?? 0) || null;
+    } catch (_) {}
+
     return {
-      btcDominance: d.btc_dominance,
-      ethDominance: d.eth_dominance,
-      totalMarketCapUsd: usd.total_market_cap,
-      totalMarketCapChange24h: usd.total_market_cap_yesterday_percentage_change,
-      totalVolume24hUsd: usd.total_volume_24h,
-      defiMarketCapUsd: usd.defi_market_cap,
-      activeCryptos: d.active_cryptocurrencies,
-      altcoinSeasonIndex: altIdx,
-      altcoinSeasonLabel: altLabel,
+      btcDominance: btcDom,
+      ethDominance: ethDom,
+      totalMarketCapUsd: d.total_market_cap?.usd ?? null,
+      totalMarketCapChange24h: d.market_cap_change_percentage_24h_usd ?? null,
+      totalVolume24hUsd: d.total_volume?.usd ?? null,
+      defiMarketCapUsd,
+      activeCryptos: d.active_cryptocurrencies ?? null,
+      altcoinSeasonIndex,
+      altcoinSeasonLabel,
     };
   } catch (err) {
     console.warn('[GlobalMetrics] Skip:', err.message);

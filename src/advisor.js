@@ -3,6 +3,7 @@ const { calcRSI, calcSMA, calcMACD, calcBollingerBands } = require('./indicators
 const { getFearGreedIndex } = require('./sentiment');
 const { getNewsSentiment } = require('./newsSentiment');
 const { getGlobalMetrics } = require('./globalMetrics');
+const { getCoinGeckoEnrichment } = require('./marketData');
 const { analyzePortfolio } = require('./portfolioAnalyzer');
 
 function scoreRSI(rsi) {
@@ -96,7 +97,7 @@ function toAction(signal, symbol, quantity, allocationPct) {
   }
 }
 
-async function analyzeAsset(holding, fgScore, newsData) {
+async function analyzeAsset(holding, fgScore, newsData, cgEnrichment) {
   const candles = await getCandles(holding.symbol, '1D', 200);
   const closes = candles.map(c => c.close);
   const price = closes[closes.length - 1];
@@ -123,6 +124,8 @@ async function analyzeAsset(holding, fgScore, newsData) {
   const reasons = [rsiScore.note, trendScore.note, macdScore.note, bbScore.note, newsNote]
     .filter(Boolean);
 
+  const enrich = cgEnrichment?.[holding.symbol] ?? null;
+
   return {
     symbol: holding.symbol,
     name: holding.name,
@@ -136,6 +139,9 @@ async function analyzeAsset(holding, fgScore, newsData) {
     news,
     reasons,
     action: toAction(signal, holding.symbol, holding.quantity, holding.allocationPct),
+    athChangePct:    enrich?.athChangePct    ?? null,
+    marketCapRank:   enrich?.marketCapRank   ?? null,
+    priceChange7dPct: enrich?.priceChange7dPct ?? null,
   };
 }
 
@@ -146,15 +152,16 @@ async function runAdvisor() {
   ]);
 
   const symbols = portfolio.holdings.map(h => h.symbol);
-  const [newsData, globalMetrics] = await Promise.all([
+  const [newsData, globalMetrics, cgEnrichment] = await Promise.all([
     getNewsSentiment(symbols),
     getGlobalMetrics(),
+    getCoinGeckoEnrichment(symbols),
   ]);
 
   // Sequenziale per rispettare il rate limit di CoinGecko free tier
   const analyses = [];
   for (const h of portfolio.holdings) {
-    analyses.push(await analyzeAsset(h, fearGreed.score, newsData));
+    analyses.push(await analyzeAsset(h, fearGreed.score, newsData, cgEnrichment));
   }
 
   return {

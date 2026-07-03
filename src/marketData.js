@@ -12,6 +12,12 @@ const COINGECKO_IDS = {
   CRO:  'crypto-com-chain',
   LINK: 'chainlink',
   UNI:  'uniswap',
+  // watchlist
+  DOT:  'polkadot',
+  ADA:  'cardano',
+  AVAX: 'avalanche-2',
+  ATOM: 'cosmos',
+  NEAR: 'near',
 };
 
 const CRYPTOCOM_INSTRUMENTS = {
@@ -23,6 +29,12 @@ const CRYPTOCOM_INSTRUMENTS = {
   CRO:  'CRO_USD',
   LINK: 'LINK_USD',
   UNI:  'UNI_USD',
+  // watchlist
+  DOT:  'DOT_USD',
+  ADA:  'ADA_USD',
+  AVAX: 'AVAX_USD',
+  ATOM: 'ATOM_USD',
+  NEAR: 'NEAR_USD',
 };
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }

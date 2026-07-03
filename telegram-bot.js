@@ -77,13 +77,13 @@ async function handleAnalysis(chatId, budget) {
   }).catch(() => {});
 
   try {
-    const { portfolio, fearGreed, globalMetrics, analyses } = await runAdvisor();
+    const { portfolio, fearGreed, globalMetrics, analyses, watchlistAnalyses } = await runAdvisor();
 
     await editProg(
       `⏳ <b>Analisi in corso...</b>\nBudget: <b>€${fmt(budget)}</b>\n\n<i>Generazione raccomandazioni Marco Ferretti...</i>`
     );
 
-    const aiText = await getTelegramAdvice(portfolio, fearGreed, analyses, budget, globalMetrics);
+    const aiText = await getTelegramAdvice(portfolio, fearGreed, analyses, budget, globalMetrics, watchlistAnalyses);
 
     // Elimina progress e invia i due messaggi
     await api('deleteMessage', { chat_id: chatId, message_id: prog.message_id }).catch(() => {});
@@ -103,6 +103,18 @@ async function handleAnalysis(chatId, budget) {
       const dec = h.priceEur < 100 ? 2 : 0;
       const chg = (h.change24hPct >= 0 ? '+' : '') + fmt(h.change24hPct) + '%';
       snap += `${emoji} <b>${h.symbol}</b>  €${fmt(h.priceEur, dec)}  ${chg}  €${fmt(h.valueEur)}\n`;
+    }
+
+    const watchlistBuys = watchlistAnalyses.filter(a => a.signal === 'BUY' || a.signal === 'STRONG BUY');
+    if (watchlistBuys.length > 0) {
+      snap += `\n\n👁 <b>Watchlist — segnali positivi</b>\n`;
+      for (const a of watchlistBuys) {
+        const emoji = SIGNAL_EMOJI[a.signal] ?? '⚪';
+        const dec = a.priceEur && a.priceEur < 100 ? 2 : 0;
+        const chg = a.change24hPct != null ? (a.change24hPct >= 0 ? '+' : '') + fmt(a.change24hPct) + '%' : '';
+        const price = a.priceEur != null ? `€${fmt(a.priceEur, dec)}  ` : '';
+        snap += `${emoji} <b>${a.symbol}</b>  ${price}${chg}\n`;
+      }
     }
 
     if (budget > 0) snap += `\n💰 Budget: <b>€${fmt(budget)}</b>`;

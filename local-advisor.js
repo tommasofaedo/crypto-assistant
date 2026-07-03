@@ -8,7 +8,7 @@ async function main() {
   const budgetEur = parseFloat(args[0] ?? '0');
 
   console.log('Raccolta dati in corso...\n');
-  const { portfolio, fearGreed, globalMetrics, analyses } = await runAdvisor();
+  const { portfolio, fearGreed, globalMetrics, analyses, watchlistAnalyses } = await runAdvisor();
 
   const date = new Date().toLocaleString('it-IT', {
     day: '2-digit', month: '2-digit', year: 'numeric',
@@ -74,6 +74,29 @@ async function main() {
     console.log(`  Analisi: ${a.reasons.join('; ')}`);
     if (a.news?.headlines?.length > 0) {
       console.log(`  Notizie: ${a.news.headlines.join(' | ')}`);
+    }
+  }
+
+  if (watchlistAnalyses.length > 0) {
+    console.log('\n' + '─'.repeat(54));
+    console.log('WATCHLIST — Opportunità di mercato (non in portafoglio)');
+    console.log('─'.repeat(54));
+    for (const a of watchlistAnalyses) {
+      const dec = a.priceEur && a.priceEur < 1 ? 4 : a.priceEur && a.priceEur < 100 ? 2 : 0;
+      console.log(`\n${a.name} (${a.symbol})`);
+      if (a.priceEur != null) {
+        const chg = a.change24hPct != null ? `  |  24h: ${a.change24hPct >= 0 ? '+' : ''}${fmt(a.change24hPct)}%` : '';
+        console.log(`  Prezzo: €${fmt(a.priceEur, dec)}${chg}`);
+      }
+      console.log(`  Segnale: ${a.signal} (score: ${a.score > 0 ? '+' : ''}${a.score})`);
+      console.log(`  RSI(14): ${fmt(a.rsi, 1)}`);
+      console.log(`  SMA50: $${fmt(a.sma50, dec)}  |  SMA200: $${fmt(a.sma200, dec)}`);
+      if (a.macd) console.log(`  MACD: ${fmt(a.macd.value, dec + 2)}  |  Istogramma: ${fmt(a.macd.histogram, dec + 2)}`);
+      if (a.bb)   console.log(`  Bollinger: $${fmt(a.bb.lower, dec)} – $${fmt(a.bb.upper, dec)} (banda ${fmt(a.bb.bandwidth, 1)}%)`);
+      if (a.marketCapRank != null)    console.log(`  Market Cap Rank: #${a.marketCapRank}`);
+      if (a.athChangePct != null)     console.log(`  Distanza ATH: ${a.athChangePct.toFixed(1)}%`);
+      if (a.priceChange7dPct != null) console.log(`  7gg: ${a.priceChange7dPct >= 0 ? '+' : ''}${fmt(a.priceChange7dPct)}%`);
+      console.log(`  Analisi: ${a.reasons.join('; ')}`);
     }
   }
 

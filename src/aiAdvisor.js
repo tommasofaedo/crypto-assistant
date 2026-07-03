@@ -23,7 +23,7 @@ PRIORITÀ OPERAZIONI: numera le operazioni in ordine di urgenza/convenienza.
 
 TONO: da professionista esperto a cliente stimato. Diretti, concreti, senza mezze misure. Se un asset è da vendere dillo chiaramente. Se un'analisi suggerisce cautela, spiegane il perché con i numeri alla mano.`;
 
-function buildAnalysisMessage(portfolio, fearGreed, analyses, budgetEur, globalMetrics) {
+function buildAnalysisMessage(portfolio, fearGreed, analyses, budgetEur, globalMetrics, watchlistAnalyses = []) {
   const holdingsText = portfolio.holdings.map(h => {
     const analysis = analyses.find(a => a.symbol === h.symbol);
     if (!analysis) return '';
@@ -71,6 +71,30 @@ function buildAnalysisMessage(portfolio, fearGreed, analyses, budgetEur, globalM
     .filter(h => ['BTC', 'ETH', 'SOL'].includes(h.symbol))
     .reduce((s, h) => s + h.allocationPct, 0);
 
+  const fmt = (n, d = 2) => n != null ? n.toFixed(d) : 'n/d';
+
+  const watchlistText = watchlistAnalyses.map(a => {
+    const dec = a.priceEur && a.priceEur < 1 ? 4 : a.priceEur && a.priceEur < 100 ? 2 : 0;
+    let text = `\n### ${a.name} (${a.symbol}) — NON IN PORTAFOGLIO
+- Prezzo attuale: ${a.priceEur != null ? '€' + fmt(a.priceEur, dec) : 'n/d'}
+- Variazione 24h: ${a.change24hPct != null ? (a.change24hPct >= 0 ? '+' : '') + fmt(a.change24hPct) + '%' : 'n/d'}
+- Segnale tecnico: ${a.signal} (score: ${a.score > 0 ? '+' : ''}${a.score})
+- RSI (14): ${fmt(a.rsi, 1)}
+- SMA 50: $${fmt(a.sma50, dec)}
+- SMA 200: $${fmt(a.sma200, dec)}`;
+    if (a.macd) text += `\n- MACD: ${fmt(a.macd.value, dec + 2)} | Istogramma: ${fmt(a.macd.histogram, dec + 2)}`;
+    if (a.bb)   text += `\n- Bollinger Bands: $${fmt(a.bb.lower, dec)} – $${fmt(a.bb.upper, dec)} (banda: ${fmt(a.bb.bandwidth, 1)}%)`;
+    if (a.marketCapRank != null)    text += `\n- Market Cap Rank: #${a.marketCapRank}`;
+    if (a.athChangePct != null)     text += `\n- Distanza ATH: ${a.athChangePct.toFixed(1)}%`;
+    if (a.priceChange7dPct != null) text += `\n- Variazione 7gg: ${a.priceChange7dPct >= 0 ? '+' : ''}${a.priceChange7dPct.toFixed(2)}%`;
+    text += `\n- Analisi tecnica: ${a.reasons.join('; ')}`;
+    return text;
+  }).join('\n');
+
+  const watchlistSection = watchlistAnalyses.length > 0
+    ? `\n\n## OPPORTUNITÀ DI MERCATO (asset non in portafoglio)\nValuta se aprire nuove posizioni se il segnale è favorevole.\n${watchlistText}`
+    : '';
+
   return `## PORTAFOGLIO ATTUALE
 Valore totale: €${totalValue.toFixed(2)}
 Concentrazione BTC+ETH+SOL: ${btcEthSol.toFixed(1)}%
@@ -89,12 +113,13 @@ DeFi Market Cap: $${(globalMetrics.defiMarketCapUsd / 1e9).toFixed(0)}B
 Altcoin Season Index: ${globalMetrics.altcoinSeasonIndex ?? 'n/d'}/100 (${globalMetrics.altcoinSeasonLabel ?? 'n/d'}) — sopra 75 = altseason, sotto 25 = BTC season` : ''}
 
 ## ANALISI TECNICA PER ASSET
-${holdingsText}
+${holdingsText}${watchlistSection}
 
 ---
 
 Sulla base di questi dati aggiornati, fornisci le tue raccomandazioni operative specifiche.
 Considera il budget disponibile di €${budgetEur} per eventuali acquisti.
+Per gli asset NON in portafoglio, valuta se aprire una nuova posizione (indica importo suggerito in EUR).
 Ricorda: voglio sapere COSA fare ESATTAMENTE, con QUANTO e QUANDO.`;
 }
 
@@ -145,7 +170,7 @@ async function getAIAdvice(portfolio, fearGreed, analyses, budgetEur, globalMetr
 const NO_SELL = new Set(['CRO', 'LINK', 'UNI']);
 
 // Calcola in codice quali azioni superano le soglie — nessuna delega all'AI
-function computeEligibleActions(analyses, portfolio, budgetEur) {
+function computeEligibleActions(analyses, portfolio, budgetEur, watchlistAnalyses = []) {
   const blue = [], orange = [];
 
   for (const a of analyses) {
@@ -164,6 +189,16 @@ function computeEligibleActions(analyses, portfolio, budgetEur) {
       orange.push(`COMPRA ${a.symbol} (score +${s}, RSI ${r.toFixed(1)})`);
     if (s <= -20 && r > 58 && canSell)
       orange.push(`VENDI 25% ${a.symbol} ~€${sellEur} (score ${s}, RSI ${r.toFixed(1)}) — rivaluta tra 2 giorni`);
+  }
+
+  // Watchlist: solo BUY, mai SELL
+  for (const a of watchlistAnalyses) {
+    if (!a.rsi) continue;
+    const s = a.score, r = a.rsi;
+    if (s >= 30 && r < 38 && budgetEur > 0)
+      blue.push(`NUOVA POSIZIONE ${a.symbol} (${a.name}) — score +${s}, RSI ${r.toFixed(1)}`);
+    else if (s >= 20 && r < 42 && budgetEur > 0)
+      orange.push(`NUOVA POSIZIONE ${a.symbol} (${a.name}) — score +${s}, RSI ${r.toFixed(1)}`);
   }
 
   return { blue, orange };
@@ -188,8 +223,8 @@ FORMATO OBBLIGATORIO:
 
 Zero preamboli, zero conclusioni. Solo le due sezioni.`;
 
-async function getTelegramAdvice(portfolio, fearGreed, analyses, budgetEur, globalMetrics) {
-  const eligible = computeEligibleActions(analyses, portfolio, budgetEur);
+async function getTelegramAdvice(portfolio, fearGreed, analyses, budgetEur, globalMetrics, watchlistAnalyses = []) {
+  const eligible = computeEligibleActions(analyses, portfolio, budgetEur, watchlistAnalyses);
 
   const fmtActions = (arr) => arr.length
     ? arr.map(a => `• ${a}`).join('\n')
@@ -199,7 +234,7 @@ async function getTelegramAdvice(portfolio, fearGreed, analyses, budgetEur, glob
     `🔵 BASSO RISCHIO:\n${fmtActions(eligible.blue)}\n\n` +
     `🟠 MEDIO-BASSO RISCHIO:\n${fmtActions(eligible.orange)}`;
 
-  const userMessage = buildAnalysisMessage(portfolio, fearGreed, analyses, budgetEur, globalMetrics)
+  const userMessage = buildAnalysisMessage(portfolio, fearGreed, analyses, budgetEur, globalMetrics, watchlistAnalyses)
     + actionsBlock;
 
   const response = await client.messages.create({

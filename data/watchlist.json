@@ -1,0 +1,9 @@
+{
+  "assets": [
+    { "symbol": "DOT",  "name": "Polkadot" },
+    { "symbol": "ADA",  "name": "Cardano" },
+    { "symbol": "AVAX", "name": "Avalanche" },
+    { "symbol": "ATOM", "name": "Cosmos" },
+    { "symbol": "NEAR", "name": "NEAR Protocol" }
+  ]
+}

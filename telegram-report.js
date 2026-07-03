@@ -39,7 +39,7 @@ async function main() {
   const budgetEur = parseFloat(args.find(a => !a.startsWith('--')) ?? '0');
 
   console.log('Raccolta dati...');
-  const { portfolio, fearGreed, globalMetrics, analyses } = await runAdvisor();
+  const { portfolio, fearGreed, globalMetrics, analyses, watchlistAnalyses } = await runAdvisor();
 
   // Messaggio 1: snapshot tecnico
   const date = new Date().toLocaleString('it-IT', {
@@ -59,11 +59,23 @@ async function main() {
     msg1 += `${emoji} <b>${h.symbol}</b>  €${fmt(h.priceEur, dec)}  ${chg}  €${fmt(h.valueEur)}\n`;
   }
 
+  const watchlistBuys = watchlistAnalyses.filter(a => a.signal === 'BUY' || a.signal === 'STRONG BUY');
+  if (watchlistBuys.length > 0) {
+    msg1 += `\n\n👁 <b>Watchlist — segnali positivi</b>\n`;
+    for (const a of watchlistBuys) {
+      const emoji = SIGNAL_EMOJI[a.signal] ?? '⚪';
+      const dec = a.priceEur && a.priceEur < 100 ? 2 : 0;
+      const chg = a.change24hPct != null ? (a.change24hPct >= 0 ? '+' : '') + fmt(a.change24hPct) + '%' : '';
+      const price = a.priceEur != null ? `€${fmt(a.priceEur, dec)}  ` : '';
+      msg1 += `${emoji} <b>${a.symbol}</b>  ${price}${chg}\n`;
+    }
+  }
+
   if (budgetEur > 0) msg1 += `\n💰 Budget: <b>€${fmt(budgetEur)}</b>`;
 
   // Messaggio 2: raccomandazioni AI
   console.log('Generazione raccomandazioni AI...');
-  const aiText = await getTelegramAdvice(portfolio, fearGreed, analyses, budgetEur, globalMetrics);
+  const aiText = await getTelegramAdvice(portfolio, fearGreed, analyses, budgetEur, globalMetrics, watchlistAnalyses);
   const msg2 = `🤖 <b>MARCO FERRETTI — Raccomandazioni</b>\n\n${aiText}`;
 
   if (localMode) {

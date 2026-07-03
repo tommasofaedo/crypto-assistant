@@ -1,10 +1,21 @@
+const fs = require('fs');
+const path = require('path');
 const { getCandles } = require('./historicalData');
 const { calcRSI, calcSMA, calcMACD, calcBollingerBands } = require('./indicators');
 const { getFearGreedIndex } = require('./sentiment');
 const { getNewsSentiment } = require('./newsSentiment');
 const { getGlobalMetrics } = require('./globalMetrics');
-const { getCoinGeckoEnrichment } = require('./marketData');
+const { getCoinGeckoEnrichment, getPrices } = require('./marketData');
 const { analyzePortfolio } = require('./portfolioAnalyzer');
+
+function loadWatchlist() {
+  try {
+    const fp = path.join(__dirname, '../data/watchlist.json');
+    return JSON.parse(fs.readFileSync(fp, 'utf-8')).assets ?? [];
+  } catch {
+    return [];
+  }
+}
 
 function scoreRSI(rsi) {
   if (rsi === null) return { points: 0, note: 'RSI non disponibile' };
@@ -80,7 +91,14 @@ function toSignal(score) {
   return 'STRONG SELL';
 }
 
-function toAction(signal, symbol, quantity, allocationPct) {
+function toAction(signal, symbol, quantity, allocationPct, isWatchlist = false) {
+  if (isWatchlist) {
+    switch (signal) {
+      case 'STRONG BUY': return `Segnale forte: valuta di aprire una posizione su ${symbol}`;
+      case 'BUY':        return `Buon momento per aprire una posizione su ${symbol}`;
+      default:           return `Nessun segnale di ingresso su ${symbol} al momento`;
+    }
+  }
   switch (signal) {
     case 'STRONG BUY':
       return `Considera di aumentare la posizione ${symbol} del 20-30%`;
@@ -138,7 +156,10 @@ async function analyzeAsset(holding, fgScore, newsData, cgEnrichment) {
     bb,
     news,
     reasons,
-    action: toAction(signal, holding.symbol, holding.quantity, holding.allocationPct),
+    action: toAction(signal, holding.symbol, holding.quantity, holding.allocationPct, holding.isWatchlist),
+    isWatchlist: holding.isWatchlist ?? false,
+    priceEur:       holding.priceEur       ?? null,
+    change24hPct:   holding.change24hPct   ?? null,
     athChangePct:    enrich?.athChangePct    ?? null,
     marketCapRank:   enrich?.marketCapRank   ?? null,
     priceChange7dPct: enrich?.priceChange7dPct ?? null,
@@ -146,16 +167,21 @@ async function analyzeAsset(holding, fgScore, newsData, cgEnrichment) {
 }
 
 async function runAdvisor() {
+  const watchlist = loadWatchlist();
+  const watchlistSymbols = watchlist.map(w => w.symbol);
+
   const [portfolio, fearGreed] = await Promise.all([
     analyzePortfolio(),
     getFearGreedIndex(),
   ]);
 
-  const symbols = portfolio.holdings.map(h => h.symbol);
+  const portfolioSymbols = portfolio.holdings.map(h => h.symbol);
+  const allSymbols = [...portfolioSymbols, ...watchlistSymbols];
+
   const [newsData, globalMetrics, cgEnrichment] = await Promise.all([
-    getNewsSentiment(symbols),
+    getNewsSentiment(allSymbols),
     getGlobalMetrics(),
-    getCoinGeckoEnrichment(symbols),
+    getCoinGeckoEnrichment(allSymbols),
   ]);
 
   // Sequenziale per rispettare il rate limit di CoinGecko free tier
@@ -164,12 +190,32 @@ async function runAdvisor() {
     analyses.push(await analyzeAsset(h, fearGreed.score, newsData, cgEnrichment));
   }
 
+  // Analisi watchlist — fetch prezzi + analisi tecnica
+  const watchlistAnalyses = [];
+  if (watchlistSymbols.length > 0) {
+    const { prices: wPrices } = await getPrices(watchlistSymbols);
+    for (const w of watchlist) {
+      const market = wPrices[w.symbol];
+      const holding = {
+        symbol: w.symbol,
+        name: w.name,
+        quantity: 0,
+        allocationPct: 0,
+        isWatchlist: true,
+        priceEur: market?.priceEur ?? null,
+        change24hPct: market?.change24hPct ?? null,
+      };
+      watchlistAnalyses.push(await analyzeAsset(holding, fearGreed.score, newsData, cgEnrichment));
+    }
+  }
+
   return {
     portfolio,
     fearGreed,
     globalMetrics,
     newsData,
     analyses: analyses.sort((a, b) => b.score - a.score),
+    watchlistAnalyses: watchlistAnalyses.sort((a, b) => b.score - a.score),
   };
 }
 

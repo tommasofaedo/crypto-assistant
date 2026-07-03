@@ -1,70 +1,70 @@
 {
-  "updatedAt": "2026-06-29",
+  "updatedAt": "2026-07-03",
   "currency": "EUR",
   "holdings": [
     {
       "symbol": "ETH",
       "name": "Ethereum",
       "quantity": 0.74072421,
-      "avgBuyPrice": 0,
+      "avgBuyPrice": 1667,
       "valueAtSnapshot": 1004.23,
-      "notes": ""
+      "notes": "15 acquisti diretti €1235 + basket €18.75 = €1253.81 totali. Parte ETH in staking DPoS (~0.1 ETH premi). Avg effettivo su holding attuale."
     },
     {
       "symbol": "SOL",
       "name": "Solana",
       "quantity": 11.8795,
-      "avgBuyPrice": 0,
+      "avgBuyPrice": 143,
       "valueAtSnapshot": 730.49,
-      "notes": ""
+      "notes": "8 acquisti diretti + basket = €1696 totali. ~10.9 SOL in staking DPoS. ~1.2 SOL da premi compound. Avg effettivo su holding attuale."
     },
     {
       "symbol": "BTC",
       "name": "Bitcoin",
       "quantity": 0.01162241,
-      "avgBuyPrice": 0,
+      "avgBuyPrice": 41329,
       "valueAtSnapshot": 625.58,
-      "notes": ""
+      "notes": "€145.70 acquisto diretto + €334.64 da deposit esterno 2021-03-10 (~€47K/BTC allora, metà trasferita subito fuori). Totale tracciabile €480. Avg approssimativo — verificare origine deposit."
     },
     {
       "symbol": "XRP",
       "name": "XRP",
       "quantity": 140.88,
-      "avgBuyPrice": 0,
+      "avgBuyPrice": 2.84,
       "valueAtSnapshot": 133.00,
-      "notes": ""
+      "notes": "2 acquisti diretti €400 totali. Dato esatto."
     },
     {
       "symbol": "AAVE",
       "name": "Aave",
       "quantity": 3.5786,
-      "avgBuyPrice": 0,
+      "avgBuyPrice": 146,
       "valueAtSnapshot": 290.85,
-      "notes": "Acquisto +€200 il 2026-06-29 a ~€81.25"
+      "notes": "3 acquisti viban + 1 basket 2024 + acquisto recente 2026-06-29 (non in CSV). Totale stimato ~€523. Avg approssimativo per 0.09 AAVE non tracciati."
     },
     {
       "symbol": "CRO",
       "name": "Cronos",
       "quantity": 332.84,
-      "avgBuyPrice": 0,
+      "avgBuyPrice": 0.37,
       "valueAtSnapshot": 16.04,
-      "notes": ""
+      "notes": "€121.74 acquistati (5 ops, avg €0.11/CRO). Resto da cashback carta e premi DPoS (essenzialmente gratis). Avg effettivo su holding totale. Asset NO_SELL."
     },
     {
       "symbol": "LINK",
       "name": "Chainlink",
       "quantity": 0.7703,
-      "avgBuyPrice": 0,
+      "avgBuyPrice": 24.34,
       "valueAtSnapshot": 5.07,
-      "notes": ""
+      "notes": "1 acquisto basket DeFi 2024-12-19 €18.75. Dato esatto. Asset NO_SELL."
     },
     {
       "symbol": "UNI",
       "name": "Uniswap",
       "quantity": 1.3,
-      "avgBuyPrice": 0,
+      "avgBuyPrice": 14.42,
       "valueAtSnapshot": 3.44,
-      "notes": ""
+      "notes": "1 acquisto basket DeFi 2024-12-19 €18.75. Dato esatto. Asset NO_SELL."
     }
   ]
 }

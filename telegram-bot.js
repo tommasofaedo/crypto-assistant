@@ -164,6 +164,7 @@ async function processUpdate(update) {
 
 async function poll() {
   let offset = 0;
+  let consecutive409 = 0; // quante volte GHA ha vinto il polling di fila
   console.log(`🤖 Bot Telegram avviato — chat autorizzata: ${ALLOWED_CHAT}`);
 
   // Salta i messaggi già in coda prima dell'avvio (evita di processare comandi vecchi)
@@ -187,12 +188,25 @@ async function poll() {
 
       for (const update of (updates ?? [])) {
         offset = update.update_id + 1;
-        await processUpdate(update);
+        if (consecutive409 >= 5) {
+          // GHA era attivo e ha quasi certamente già processato questo messaggio
+          console.log(`[PM2 skip] update ${update.update_id} — GHA attivo (${consecutive409} errori 409 consecutivi)`);
+        } else {
+          await processUpdate(update);
+        }
       }
+      consecutive409 = 0; // PM2 è l'istanza attiva
     } catch (err) {
-      const isNetwork = ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND'].includes(err.code);
-      if (!isNetwork) console.error('Errore polling:', err.message);
-      await new Promise(r => setTimeout(r, isNetwork ? 5000 : 10000));
+      const status = err.response?.status;
+      if (status === 409) {
+        consecutive409++;
+        console.error(`Errore polling: 409 (GHA attivo, retry tra 60s — consecutivi: ${consecutive409})`);
+        await new Promise(r => setTimeout(r, 60000));
+      } else {
+        const isNetwork = ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND'].includes(err.code);
+        if (!isNetwork) console.error('Errore polling:', err.message);
+        await new Promise(r => setTimeout(r, isNetwork ? 5000 : 10000));
+      }
     }
   }
 }

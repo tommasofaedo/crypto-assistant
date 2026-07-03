@@ -6,8 +6,9 @@ Analisi tecnica automatica del portafoglio crypto con raccomandazioni AI in ital
 
 - Prezzi e storici live da **Crypto.com Exchange API** (fallback CoinGecko)
 - Indicatori tecnici calcolati in locale: RSI(14), SMA50/200, MACD, Bande di Bollinger
-- Fear & Greed Index e metriche globali di mercato (CoinMarketCap)
+- Fear & Greed Index e metriche globali di mercato (CoinGecko)
 - Segnali BUY/SELL con soglie deterministiche (nessuna aleatoria affidata all'AI)
+- **Watchlist**: analisi tecnica su asset non in portafoglio — segnala solo opportunità di acquisto (mai vendita)
 - Raccomandazioni in linguaggio naturale stile "Marco Ferretti" via Claude (Anthropic)
 - Bot Telegram con long polling — risponde a `/analisi 100` o linguaggio naturale
 - Report giornaliero automatico ogni mattina via GitHub Actions (costo ~€0/mese su repo pubblica)
@@ -32,6 +33,7 @@ crypto_assistant/
 ├── telegram-bot.js         # bot Telegram (long polling)
 ├── telegram-report.js      # report automatico GHA
 ├── data/portfolio.json     # quantità asset detenuti
+├── data/watchlist.json     # asset non in portafoglio da monitorare
 └── .github/workflows/
     ├── daily-report.yml    # report mattutino 09:00 IT
     └── telegram-bot.yml    # bot sempre attivo (turni 6h)
@@ -69,6 +71,22 @@ Modifica `data/portfolio.json` con le tue quantità:
   ]
 }
 ```
+
+### 4. Configura la watchlist (opzionale)
+
+Modifica `data/watchlist.json` per aggiungere o rimuovere asset da monitorare come potenziali nuove posizioni:
+
+```json
+{
+  "assets": [
+    { "symbol": "DOT", "name": "Polkadot" },
+    { "symbol": "ADA", "name": "Cardano" },
+    { "symbol": "AVAX", "name": "Avalanche" }
+  ]
+}
+```
+
+Gli asset in watchlist vengono analizzati con gli stessi indicatori tecnici del portafoglio, ma generano **solo segnali BUY** (mai SELL — non ha senso vendere asset che non possiedi). Appaiono in una sezione separata sia nel report CLI che nello snapshot Telegram (solo se il segnale è positivo).
 
 ## Utilizzo locale
 
@@ -117,12 +135,22 @@ Per attivarlo, aggiungi i seguenti **Secrets** nel repository GitHub (`Settings 
 
 I segnali sono calcolati deterministicamente in codice, non dall'AI:
 
-| Sezione | BUY | SELL |
-|---------|-----|------|
-| Basso rischio | score ≥ +30 AND RSI < 38 | score ≤ -30 AND RSI > 62 |
-| Medio-basso | score ≥ +20 AND RSI < 42 | score ≤ -20 AND RSI > 58 |
+| Sezione | BUY (portafoglio) | SELL (portafoglio) | NUOVA POSIZIONE (watchlist) |
+|---------|-------------------|--------------------|----------------------------|
+| 🔵 Basso rischio | score ≥ +30 AND RSI < 38 | score ≤ -30 AND RSI > 62 | score ≥ +30 AND RSI < 38 |
+| 🟠 Medio-basso | score ≥ +20 AND RSI < 42 | score ≤ -20 AND RSI > 58 | score ≥ +20 AND RSI < 42 |
 
 Il Fear & Greed Index aggiunge fino a ±7 punti allo score. Se nessuna soglia è raggiunta, la raccomandazione è HOLD con note di monitoraggio.
+
+**Composizione dello score:**
+
+| Indicatore | Range punti |
+|------------|-------------|
+| RSI(14) | -30 / +30 |
+| Trend SMA50/200 | -25 / +25 |
+| MACD | -20 / +20 |
+| Bande di Bollinger | -15 / +15 |
+| Fear & Greed Index | -7 / +7 |
 
 ## Costi stimati
 

@@ -22,9 +22,9 @@
       "symbol": "BTC",
       "name": "Bitcoin",
       "quantity": 0.01162241,
-      "avgBuyPrice": 41329,
+      "avgBuyPrice": 30027,
       "valueAtSnapshot": 625.58,
-      "notes": "€145.70 acquisto diretto + €334.64 da deposit esterno 2021-03-10 (~€47K/BTC allora, metà trasferita subito fuori). Totale tracciabile €480. Avg approssimativo — verificare origine deposit."
+      "notes": "0.003 BTC acquistati su CDC (€145.70). 0.007133 BTC netti da Binance (comprati 2017-2019 a ~€28.500/BTC stima, depositati CDC 2021-03-10 poi metà ritrasfertiti). Totale stimato €349."
     },
     {
       "symbol": "XRP",

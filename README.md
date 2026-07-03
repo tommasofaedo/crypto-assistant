@@ -4,12 +4,13 @@ Analisi tecnica automatica del portafoglio crypto con raccomandazioni AI in ital
 
 ## Funzionalità
 
-- Prezzi e storici live da **Crypto.com Exchange API** (fallback CoinGecko)
+- Prezzi e storici live da **Crypto.com Exchange API** (fallback CoinGecko), con retry automatico su errori 5xx
 - Indicatori tecnici calcolati in locale: RSI(14), SMA50/200, MACD, Bande di Bollinger
 - Fear & Greed Index e metriche globali di mercato (CoinGecko)
-- Segnali BUY/SELL con soglie deterministiche (nessuna aleatoria affidata all'AI)
+- Segnali BUY/SELL con **soglie deterministiche in codice** — l'AI non può inventarsi segnali non supportati dai dati
+- Ragionamento contestuale: in condizioni di Extreme Fear l'AI integra la logica tecnica con il contesto macro
 - **Watchlist**: analisi tecnica su asset non in portafoglio — segnala solo opportunità di acquisto (mai vendita)
-- Raccomandazioni in linguaggio naturale stile "Marco Ferretti" via Claude (Anthropic)
+- **Coerenza garantita**: locale e Telegram usano la stessa funzione AI — la raccomandazione è identica su entrambi i canali
 - Bot Telegram con long polling — risponde a `/analisi 100` o linguaggio naturale
 - Report giornaliero automatico ogni mattina via GitHub Actions (costo ~€0/mese su repo pubblica)
 
@@ -18,25 +19,23 @@ Analisi tecnica automatica del portafoglio crypto con raccomandazioni AI in ital
 ```
 crypto_assistant/
 ├── src/
-│   ├── advisor.js          # orchestratore principale
-│   ├── indicators.js       # RSI, MACD, SMA, Bollinger
-│   ├── portfolioAnalyzer.js# scoring e segnali
-│   ├── aiAdvisor.js        # prompt Claude per raccomandazioni
-│   ├── marketData.js       # prezzi live
-│   ├── historicalData.js   # candele per indicatori
-│   ├── cryptoClient.js     # client Crypto.com v2
-│   ├── portfolio.js        # lettura portfolio.json
-│   ├── sentiment.js        # Fear & Greed Index
-│   ├── globalMetrics.js    # market cap, dominance
-│   └── newsSentiment.js    # sentiment notizie
-├── local-advisor.js        # CLI locale
-├── telegram-bot.js         # bot Telegram (long polling)
-├── telegram-report.js      # report automatico GHA
-├── data/portfolio.json     # quantità asset detenuti
-├── data/watchlist.json     # asset non in portafoglio da monitorare
+│   ├── advisor.js           # orchestratore: analizza portafoglio + watchlist
+│   ├── indicators.js        # RSI, MACD, SMA, Bollinger
+│   ├── portfolioAnalyzer.js # prezzi live, P&L, allocazione
+│   ├── aiAdvisor.js         # prompt Claude: segnali deterministici + ragionamento contestuale
+│   ├── marketData.js        # prezzi live (Crypto.com + CoinGecko fallback)
+│   ├── historicalData.js    # candele storiche 200gg (Crypto.com + CoinGecko fallback)
+│   ├── sentiment.js         # Fear & Greed Index (alternative.me)
+│   ├── globalMetrics.js     # market cap, BTC dominance, altcoin season (CoinGecko)
+│   └── newsSentiment.js     # stub (futuro: news sentiment)
+├── local-advisor.js         # CLI locale — stampa dati + raccomandazione AI identica a Telegram
+├── telegram-bot.js          # bot Telegram (long polling, PM2)
+├── telegram-report.js       # report automatico GHA
+├── data/portfolio.json      # quantità asset detenuti
+├── data/watchlist.json      # asset non in portafoglio da monitorare
 └── .github/workflows/
-    ├── daily-report.yml    # report mattutino 09:00 IT
-    └── telegram-bot.yml    # bot sempre attivo (turni 6h)
+    ├── daily-report.yml     # report mattutino 09:00 IT
+    └── telegram-bot.yml     # bot attivo 20h/giorno in 4 finestre da 5h
 ```
 
 ## Setup
@@ -66,8 +65,8 @@ Modifica `data/portfolio.json` con le tue quantità:
 ```json
 {
   "holdings": [
-    { "symbol": "BTC", "quantity": 0.01162241 },
-    { "symbol": "ETH", "quantity": 0.74072421 }
+    { "symbol": "BTC", "name": "Bitcoin", "quantity": 0.01162241 },
+    { "symbol": "ETH", "name": "Ethereum", "quantity": 0.74072421 }
   ]
 }
 ```
@@ -86,29 +85,31 @@ Modifica `data/watchlist.json` per aggiungere o rimuovere asset da monitorare co
 }
 ```
 
-Gli asset in watchlist vengono analizzati con gli stessi indicatori tecnici del portafoglio, ma generano **solo segnali BUY** (mai SELL — non ha senso vendere asset che non possiedi). Appaiono in una sezione separata sia nel report CLI che nello snapshot Telegram (solo se il segnale è positivo).
+Gli asset in watchlist vengono analizzati con gli stessi indicatori tecnici del portafoglio, ma generano **solo segnali BUY** — non ha senso segnalare la vendita di asset che non possiedi. Appaiono nello snapshot Telegram solo se il segnale è positivo.
 
 ## Utilizzo locale
 
 ```bash
-# Analisi senza budget (solo HOLD/SELL)
+# Analisi senza budget (SELL e HOLD)
 node local-advisor.js
 
 # Analisi con €100 disponibili (attiva segnali BUY)
 node local-advisor.js 100
 ```
 
-L'output mostra RSI, MACD, Bollinger, score e segnale per ogni asset. I dati sono pronti per essere passati a Claude Code o a qualsiasi LLM per le raccomandazioni finali.
+L'output include i dati tecnici completi (RSI, MACD, Bollinger, score per ogni asset) e la **raccomandazione AI finale** — identica a quella che riceverebbe il bot Telegram con gli stessi dati e lo stesso budget.
 
 ## Bot Telegram
 
 ```bash
-# Avvio locale
-npm run bot
-
-# Avvio con PM2 (auto-restart)
+# Avvio con PM2 (auto-restart ad ogni accensione del PC)
 pm2 start telegram-bot.js --name crypto-bot
 pm2 save
+
+# Comandi utili
+pm2 status
+pm2 logs crypto-bot
+pm2 restart crypto-bot
 ```
 
 **Comandi Telegram:**
@@ -117,9 +118,18 @@ pm2 save
 - `/analisi 100` — analisi con €100 disponibili
 - `analisi con 50 euro` — linguaggio naturale
 
+**Nota PM2 + GitHub Actions:** quando GHA è attivo (vedi sotto), PM2 cede il polling dopo 5 minuti di errori 409 consecutivi ed entra in modalità passiva, evitando messaggi duplicati.
+
 ## GitHub Actions (bot sempre attivo, €0/mese)
 
-Il workflow `telegram-bot.yml` avvia il bot in turni da ~6 ore (mattina e sera), coprendo le fasce operative principali senza costi su repo pubblica GitHub.
+Il workflow `telegram-bot.yml` avvia il bot in 4 finestre da 5h con 30 minuti di gap, coprendo 20h/giorno senza costi su repo pubblica GitHub:
+
+| Finestra | Orario CEST |
+|----------|-------------|
+| 1 | 05:00 – 10:00 |
+| 2 | 10:30 – 15:30 |
+| 3 | 16:00 – 21:00 |
+| 4 | 21:30 – 02:30 |
 
 Per attivarlo, aggiungi i seguenti **Secrets** nel repository GitHub (`Settings → Secrets → Actions`):
 
@@ -140,7 +150,7 @@ I segnali sono calcolati deterministicamente in codice, non dall'AI:
 | 🔵 Basso rischio | score ≥ +30 AND RSI < 38 | score ≤ -30 AND RSI > 62 | score ≥ +30 AND RSI < 38 |
 | 🟠 Medio-basso | score ≥ +20 AND RSI < 42 | score ≤ -20 AND RSI > 58 | score ≥ +20 AND RSI < 42 |
 
-Il Fear & Greed Index aggiunge fino a ±7 punti allo score. Se nessuna soglia è raggiunta, la raccomandazione è HOLD con note di monitoraggio.
+**Ragionamento contestuale:** se il Fear & Greed Index è sotto 25 (Extreme Fear) e c'è budget disponibile, l'AI può raccomandare un DCA difensivo su BTC o ETH anche in assenza di segnali tecnici formali — è il contesto macro a giustificarlo.
 
 **Composizione dello score:**
 
@@ -152,14 +162,27 @@ Il Fear & Greed Index aggiunge fino a ±7 punti allo score. Se nessuna soglia è
 | Bande di Bollinger | -15 / +15 |
 | Fear & Greed Index | -7 / +7 |
 
+## Affidabilità e limiti
+
+Marco Ferretti fornisce analisi tecniche serie basate su indicatori standard del settore. Quello che **sa fare**:
+- Identificare asset in zona ipervenduto/ipercomprato
+- Confermare la direzione del trend (golden/death cross)
+- Suggerire timing di DCA evitando entrate in ipercomprato
+- Mantenere un framework oggettivo e coerente, libero dall'emotività
+
+Quello che **non può fare**:
+- Prevedere il futuro o garantire rendimenti
+- Reagire a news e fondamentali (la componente news è attualmente uno stub)
+- Rilevare movimenti di whale o flussi on-chain
+- Proteggersi da eventi imprevisti (crolli improvvisi, fallimenti di exchange)
+
 ## Costi stimati
 
 | Componente | Costo |
 |------------|-------|
 | GitHub Actions (repo pubblica) | €0/mese |
-| Claude API (report GHA mattutino) | ~€0.05/analisi |
-| Claude API (bot Telegram, uso moderato) | ~€1.50/mese fissi |
-| Crypto.com API | €0 |
+| Claude API (analisi bot + locale) | ~€0.06–0.08/analisi |
+| Tutte le altre API | €0 |
 
 ## Dipendenze
 

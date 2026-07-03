@@ -39,6 +39,23 @@ const CRYPTOCOM_INSTRUMENTS = {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+async function cdcGet(url, params, retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await axios.get(url, { params, timeout: 15000 });
+    } catch (err) {
+      const status = err.response?.status;
+      if (status >= 500 && status < 600 && attempt < retries) {
+        const wait = 5000 * attempt;
+        console.log(`[Crypto.com] ${status}, attendo ${wait / 1000}s (tentativo ${attempt}/${retries})...`);
+        await sleep(wait);
+      } else {
+        throw err;
+      }
+    }
+  }
+}
+
 async function cgGet(path, params, retries = 4) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -66,8 +83,7 @@ async function getUsdEurRate() {
 }
 
 async function getCryptoComPrices(symbols, eurRate) {
-  // Fetch all tickers in one call, then filter — no per-symbol rate limit risk
-  const r = await axios.get(`${CRYPTOCOM_V2}/get-ticker`, { timeout: 15000 });
+  const r = await cdcGet(`${CRYPTOCOM_V2}/get-ticker`);
   const allTickers = r.data?.result?.data ?? [];
   const byInstrument = Object.fromEntries(allTickers.map(t => [t.i, t]));
 

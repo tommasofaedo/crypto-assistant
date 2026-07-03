@@ -6,13 +6,29 @@ const CRYPTOCOM_V2   = 'https://api.crypto.com/v2/public';
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+async function cdcGet(url, params, retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await axios.get(url, { params, timeout: 15000 });
+    } catch (err) {
+      const status = err.response?.status;
+      if (status >= 500 && status < 600 && attempt < retries) {
+        const wait = 5000 * attempt;
+        console.log(`[Crypto.com] ${status}, attendo ${wait / 1000}s (tentativo ${attempt}/${retries})...`);
+        await sleep(wait);
+      } else {
+        throw err;
+      }
+    }
+  }
+}
+
 async function getCryptoComCandles(symbol) {
   const instrument = CRYPTOCOM_INSTRUMENTS[symbol];
   if (!instrument) throw new Error(`Strumento Crypto.com non trovato per ${symbol}`);
 
-  const r = await axios.get(`${CRYPTOCOM_V2}/get-candlestick`, {
-    params: { instrument_name: instrument, timeframe: '1D', count: 200 },
-    timeout: 15000,
+  const r = await cdcGet(`${CRYPTOCOM_V2}/get-candlestick`, {
+    instrument_name: instrument, timeframe: '1D', count: 200,
   });
 
   const candles = r.data?.result?.data;

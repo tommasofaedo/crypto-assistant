@@ -71,7 +71,20 @@ Modifica `data/portfolio.json` con le tue quantità:
 }
 ```
 
-### 4. Configura la watchlist (opzionale)
+### 4. News sentiment (opzionale)
+
+Registrati gratuitamente su [cryptopanic.com](https://cryptopanic.com) e ottieni un API key gratuita.
+Aggiungila al `.env`:
+
+```env
+CRYPTOPANIC_API_KEY=il_tuo_token
+```
+
+Senza questa chiave il sistema funziona normalmente — il contributo news allo score è semplicemente 0.
+Con la chiave, gli ultimi articoli per ogni asset vengono analizzati tramite i voti della community
+(positive/negative/liked/toxic) e alimentano lo score con un contributo da -5 a +5.
+
+### 5. Configura la watchlist (opzionale)
 
 Modifica `data/watchlist.json` per aggiungere o rimuovere asset da monitorare come potenziali nuove posizioni:
 

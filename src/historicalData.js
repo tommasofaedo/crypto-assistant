@@ -37,9 +37,10 @@ async function cgGet(path, params, retries = 4) {
         timeout: 15000,
       });
     } catch (err) {
-      if (err.response?.status === 429 && attempt < retries) {
-        const wait = 15000 * attempt;
-        console.log(`[${path}] rate limit, attendo ${wait / 1000}s...`);
+      const status = err.response?.status;
+      if ((status === 429 || (status >= 500 && status < 600)) && attempt < retries) {
+        const wait = status === 429 ? 15000 * attempt : 5000 * attempt;
+        console.log(`[${path}] ${status}, attendo ${wait / 1000}s (tentativo ${attempt}/${retries})...`);
         await sleep(wait);
       } else {
         throw err;

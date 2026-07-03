@@ -1,0 +1,145 @@
+[
+  {
+    "date": "2026-07-03T09:18:24.927Z",
+    "symbol": "AAVE",
+    "signal": "HOLD",
+    "score": 12,
+    "rsi": 57.3,
+    "priceEur": 75.783,
+    "macdHist": 0.801759,
+    "obvTrend": null,
+    "isWatchlist": false
+  },
+  {
+    "date": "2026-07-03T09:18:24.927Z",
+    "symbol": "SOL",
+    "signal": "HOLD",
+    "score": 4,
+    "rsi": 63.9,
+    "priceEur": 71.0764,
+    "macdHist": 1.557051,
+    "obvTrend": null,
+    "isWatchlist": false
+  },
+  {
+    "date": "2026-07-03T09:18:24.927Z",
+    "symbol": "UNI",
+    "signal": "HOLD",
+    "score": 4,
+    "rsi": 62.2,
+    "priceEur": 2.8262,
+    "macdHist": 0.029529,
+    "obvTrend": null,
+    "isWatchlist": false
+  },
+  {
+    "date": "2026-07-03T09:18:24.927Z",
+    "symbol": "BTC",
+    "signal": "HOLD",
+    "score": -2,
+    "rsi": 44.2,
+    "priceEur": 54076.2913,
+    "macdHist": 326.190381,
+    "obvTrend": null,
+    "isWatchlist": false
+  },
+  {
+    "date": "2026-07-03T09:18:24.927Z",
+    "symbol": "XRP",
+    "signal": "HOLD",
+    "score": -12,
+    "rsi": 45.8,
+    "priceEur": 0.9675,
+    "macdHist": 0.006566,
+    "obvTrend": null,
+    "isWatchlist": false
+  },
+  {
+    "date": "2026-07-03T09:18:24.927Z",
+    "symbol": "CRO",
+    "signal": "HOLD",
+    "score": -12,
+    "rsi": 46.3,
+    "priceEur": 0.0503,
+    "macdHist": 0.000352,
+    "obvTrend": null,
+    "isWatchlist": false
+  },
+  {
+    "date": "2026-07-03T09:18:24.927Z",
+    "symbol": "ETH",
+    "signal": "HOLD",
+    "score": -16,
+    "rsi": 52.5,
+    "priceEur": 1515.6155,
+    "macdHist": 19.825672,
+    "obvTrend": null,
+    "isWatchlist": false
+  },
+  {
+    "date": "2026-07-03T09:18:24.927Z",
+    "symbol": "LINK",
+    "signal": "HOLD",
+    "score": -16,
+    "rsi": 49.7,
+    "priceEur": 6.8436,
+    "macdHist": 0.063454,
+    "obvTrend": null,
+    "isWatchlist": false
+  },
+  {
+    "date": "2026-07-03T09:18:24.927Z",
+    "symbol": "NEAR",
+    "signal": "HOLD",
+    "score": 4,
+    "rsi": 48.5,
+    "priceEur": 1.7215,
+    "macdHist": -0.009614,
+    "obvTrend": null,
+    "isWatchlist": true
+  },
+  {
+    "date": "2026-07-03T09:18:24.927Z",
+    "symbol": "DOT",
+    "signal": "HOLD",
+    "score": -6,
+    "rsi": 36.6,
+    "priceEur": 0.7548,
+    "macdHist": 0.004424,
+    "obvTrend": null,
+    "isWatchlist": true
+  },
+  {
+    "date": "2026-07-03T09:18:24.927Z",
+    "symbol": "ATOM",
+    "signal": "HOLD",
+    "score": -8,
+    "rsi": 37.5,
+    "priceEur": 1.387,
+    "macdHist": -0.009583,
+    "obvTrend": "down",
+    "isWatchlist": true
+  },
+  {
+    "date": "2026-07-03T09:18:24.927Z",
+    "symbol": "ADA",
+    "signal": "HOLD",
+    "score": -10,
+    "rsi": 50.6,
+    "priceEur": 0.1462,
+    "macdHist": 0.003907,
+    "obvTrend": "up",
+    "isWatchlist": true
+  },
+  {
+    "date": "2026-07-03T09:18:24.927Z",
+    "symbol": "AVAX",
+    "signal": "SELL",
+    "score": -20,
+    "rsi": 49.9,
+    "priceEur": 5.99,
+    "macdHist": 0.136643,
+    "obvTrend": null,
+    "isWatchlist": true
+  }
+]

@@ -160,7 +160,10 @@ I segnali sono calcolati deterministicamente in codice, non dall'AI:
 | Trend SMA50/200 | -25 / +25 |
 | MACD | -20 / +20 |
 | Bande di Bollinger | -15 / +15 |
+| Volume + OBV | -10 / +10 |
+| Support/Resistance | -8 / +8 |
 | Fear & Greed Index | -7 / +7 |
+| Community Sentiment (CoinGecko) | -5 / +5 |
 
 ## Affidabilità e limiti
 

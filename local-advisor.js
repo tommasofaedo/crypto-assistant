@@ -53,6 +53,10 @@ async function main() {
     console.log(`\n${h.name} (${h.symbol})`);
     console.log(`  Quantità: ${h.quantity} ${h.symbol}`);
     console.log(`  Prezzo: €${fmt(h.priceEur, dec)}  |  Valore: €${fmt(h.valueEur)}  |  Alloc: ${fmt(h.allocationPct)}%`);
+    if (h.pnlEur != null) {
+      const sign = h.pnlEur >= 0 ? '+' : '';
+      console.log(`  P&L: ${sign}€${fmt(h.pnlEur)} (${sign}${fmt(h.pnlPct)}%)`);
+    }
     console.log(`  24h: ${h.change24hPct >= 0 ? '+' : ''}${fmt(h.change24hPct)}%`);
     console.log(`  Segnale: ${a.signal} (score: ${a.score > 0 ? '+' : ''}${a.score})`);
     console.log(`  RSI(14): ${fmt(a.rsi, 1)}`);
@@ -62,6 +66,12 @@ async function main() {
     }
     if (a.bb) {
       console.log(`  Bollinger: $${fmt(a.bb.lower, dec)} – $${fmt(a.bb.upper, dec)} (banda ${fmt(a.bb.bandwidth, 1)}%)`);
+    }
+    if (a.sr) {
+      const srParts = [];
+      if (a.sr.support    != null) srParts.push(`Sup: $${a.sr.support.toFixed(dec)}`);
+      if (a.sr.resistance != null) srParts.push(`Res: $${a.sr.resistance.toFixed(dec)}`);
+      if (srParts.length) console.log(`  S/R: ${srParts.join('  |  ')}`);
     }
     if (a.marketCapRank != null) {
       console.log(`  Market Cap Rank: #${a.marketCapRank}`);
@@ -94,6 +104,12 @@ async function main() {
       console.log(`  SMA50: $${fmt(a.sma50, dec)}  |  SMA200: $${fmt(a.sma200, dec)}`);
       if (a.macd) console.log(`  MACD: ${fmt(a.macd.value, dec + 2)}  |  Istogramma: ${fmt(a.macd.histogram, dec + 2)}`);
       if (a.bb)   console.log(`  Bollinger: $${fmt(a.bb.lower, dec)} – $${fmt(a.bb.upper, dec)} (banda ${fmt(a.bb.bandwidth, 1)}%)`);
+      if (a.sr) {
+        const srParts = [];
+        if (a.sr.support    != null) srParts.push(`Sup: $${a.sr.support.toFixed(dec)}`);
+        if (a.sr.resistance != null) srParts.push(`Res: $${a.sr.resistance.toFixed(dec)}`);
+        if (srParts.length) console.log(`  S/R: ${srParts.join('  |  ')}`);
+      }
       if (a.marketCapRank != null)    console.log(`  Market Cap Rank: #${a.marketCapRank}`);
       if (a.athChangePct != null)     console.log(`  Distanza ATH: ${a.athChangePct.toFixed(1)}%`);
       if (a.priceChange7dPct != null) console.log(`  7gg: ${a.priceChange7dPct >= 0 ? '+' : ''}${fmt(a.priceChange7dPct)}%`);

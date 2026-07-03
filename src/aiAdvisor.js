@@ -48,6 +48,17 @@ function buildAnalysisMessage(portfolio, fearGreed, analyses, budgetEur, globalM
     if (analysis.bb) {
       text += `\n- Bollinger Bands: $${fmt(analysis.bb.lower, dec)} – $${fmt(analysis.bb.upper, dec)} (banda: ${fmt(analysis.bb.bandwidth, 1)}%)`;
     }
+    if (h.pnlEur != null) {
+      const sign = h.pnlEur >= 0 ? '+' : '';
+      text += `\n- P&L: ${sign}€${fmt(h.pnlEur)} (${sign}${fmt(h.pnlPct)}%) — ${h.pnlEur >= 0 ? 'in profitto' : 'in perdita'}`;
+    }
+    if (analysis.sr) {
+      const { support, resistance } = analysis.sr;
+      const srParts = [];
+      if (support    != null) srParts.push(`supporto $${support.toFixed(dec)}`);
+      if (resistance != null) srParts.push(`resistenza $${resistance.toFixed(dec)}`);
+      if (srParts.length) text += `\n- Livelli chiave: ${srParts.join(' / ')}`;
+    }
     if (analysis.marketCapRank != null) {
       text += `\n- Market Cap Rank: #${analysis.marketCapRank}`;
     }
@@ -58,10 +69,6 @@ function buildAnalysisMessage(portfolio, fearGreed, analyses, budgetEur, globalM
       text += `\n- Variazione 7gg: ${analysis.priceChange7dPct >= 0 ? '+' : ''}${analysis.priceChange7dPct.toFixed(2)}%`;
     }
     text += `\n- Analisi tecnica: ${analysis.reasons.join('; ')}`;
-
-    if (analysis.news?.headlines?.length > 0) {
-      text += `\n- Notizie recenti: ${analysis.news.headlines.join(' | ')}`;
-    }
 
     return text;
   }).filter(Boolean).join('\n');
@@ -84,6 +91,12 @@ function buildAnalysisMessage(portfolio, fearGreed, analyses, budgetEur, globalM
 - SMA 200: $${fmt(a.sma200, dec)}`;
     if (a.macd) text += `\n- MACD: ${fmt(a.macd.value, dec + 2)} | Istogramma: ${fmt(a.macd.histogram, dec + 2)}`;
     if (a.bb)   text += `\n- Bollinger Bands: $${fmt(a.bb.lower, dec)} – $${fmt(a.bb.upper, dec)} (banda: ${fmt(a.bb.bandwidth, 1)}%)`;
+    if (a.sr) {
+      const srParts = [];
+      if (a.sr.support    != null) srParts.push(`supporto $${a.sr.support.toFixed(dec)}`);
+      if (a.sr.resistance != null) srParts.push(`resistenza $${a.sr.resistance.toFixed(dec)}`);
+      if (srParts.length) text += `\n- Livelli chiave: ${srParts.join(' / ')}`;
+    }
     if (a.marketCapRank != null)    text += `\n- Market Cap Rank: #${a.marketCapRank}`;
     if (a.athChangePct != null)     text += `\n- Distanza ATH: ${a.athChangePct.toFixed(1)}%`;
     if (a.priceChange7dPct != null) text += `\n- Variazione 7gg: ${a.priceChange7dPct >= 0 ? '+' : ''}${a.priceChange7dPct.toFixed(2)}%`;

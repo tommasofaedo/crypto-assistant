@@ -15,14 +15,42 @@ Un 520/502 transitorio crashava l'intera analisi. Aggiunta funzione `cdcGet` con
 `cdcGet` con backoff 5s × tentativo aggiunto anche alle chiamate Crypto.com ticker
 e candlestick, non solo CoinGecko. Un 520/502 transitorio non crasha più l'analisi.
 
+### Retry su Frankfurter EUR/USD (#7) (03/07/2026)
+`getUsdEurRate()` in `marketData.js` ora usa retry con backoff 5s su errori 5xx e di rete.
+Un errore transitorio del tasso EUR/USD non blocca più l'intera analisi.
+
+### Volume + OBV negli indicatori (#6) (03/07/2026)
+Aggiunti `calcVolumeScore()` e `calcOBV()` in `indicators.js`. Range -10/+10.
+Un rally su volume basso è penalizzato (-3/-5); momentum confermato da OBV è premiato (+5/+10).
+Le candele Crypto.com includono già il volume — dati già presenti, ora utilizzati.
+
+### Support/Resistance automatici (03/07/2026)
+`calcSupportResistance()` e `scoreSupportResistance()` in `indicators.js`. Range -8/+8.
+Calcola pivot high/low dagli ultimi 200gg e determina il supporto/resistenza più vicino al prezzo attuale.
+Marco ora sa se il prezzo è in zona di rimbalzo o di rifiuto storico.
+
+### CoinGecko community sentiment (#2) (03/07/2026)
+`newsSentiment.js` reimplementato con `/coins/{id}` CoinGecko. Range -5/+5.
+Restituisce `sentiment_votes_up_percentage` per ogni asset. Cache in-memory 1h.
+13 call individuali con sleep 2s — prima analisi ~26s extra, poi cached.
+
+### Storico raccomandazioni (#4) (03/07/2026)
+Nuovo `src/historyManager.js`. Ogni analisi salva in `data/history.json`:
+data, symbol, signal, score, RSI, prezzo EUR, MACD histogram, OBV trend, isWatchlist.
+Permette di misurare l'accuratezza di Marco nel tempo e calibrare i pesi.
+
+### P&L per asset — codice pronto (03/07/2026)
+`portfolioAnalyzer.js` calcolava già `pnlEur`/`pnlPct` quando `avgBuyPrice > 0`.
+Ora mostrati in locale e nel messaggio all'AI. Richiede compilare `avgBuyPrice` in `portfolio.json`.
+
 ---
 
 ## 🔲 Da fare
 
 ### 2. News sentiment reale
-**Impatto:** alto — dimensione oggi completamente cieca  
+**Impatto:** alto — dimensione oggi parzialmente coperta da community sentiment  
 **Sforzo:** medio  
-**Stato:** ⛔ bloccato — CryptoPanic ha eliminato il piano free (aprile 2026)
+**Stato:** ✅ parziale — CoinGecko community sentiment implementato (03/07/2026)
 
 Alternative valutate e stato:
 
@@ -56,62 +84,26 @@ segnali sopra soglia. Aggiungere flag `--silent` che non invia nulla se tutto è
 ---
 
 ### 4. Storico raccomandazioni
-**Impatto:** medio — permette di misurare l'accuratezza di Marco nel tempo  
-**Sforzo:** medio
-
-Ogni raccomandazione viene generata e dimenticata. Salvare in `data/history.json` le
-azioni consigliate con timestamp, prezzi al momento del consiglio e segnali tecnici.
-Permetterebbe di:
-- Verificare se i BUY/SELL si sono rivelati corretti a posteriori
-- Calibrare i pesi degli indicatori (es. aumentare il peso MACD se si dimostra più
-  predittivo di RSI su questo portafoglio specifico)
-- Generare un "report di performance" mensile
-
-**Implementazione:** `data/history.json` con struttura `[{date, symbol, action, price, score, rsi}]`.
-`advisor.js` appende l'entry dopo ogni analisi. Nuovo comando `node history-report.js` per il riepilogo.
+**Stato:** ✅ implementato (03/07/2026) — vedi sezione Completati
 
 ---
 
 ### 5. Prezzo medio di carico in portfolio.json
 **Impatto:** medio — P&L reale per asset, consigli di vendita contestualizzati  
-**Sforzo:** basso
+**Sforzo:** zero (codice già pronto)
 
-`portfolio.json` ha il campo `avgBuyPrice` ma è sempre 0. Inserendo i prezzi medi di
-acquisto, Marco potrebbe:
-- Mostrare P&L % e EUR per ogni asset nell'analisi
-- Dare consigli di vendita contestualizzati ("sei in profitto del 23%, considera di
-  prenderne una parte")
-- Calibrare i target di uscita in modo personalizzato
-
-**Implementazione:** aggiornare manualmente `avgBuyPrice` in `portfolio.json` dopo ogni trade.
-Modificare `portfolioAnalyzer.js` e `buildAnalysisMessage()` per mostrare P&L dove disponibile.
+Il codice mostra già P&L se `avgBuyPrice > 0` in `portfolio.json`.
+**Prossimo passo: inserire manualmente i prezzi medi di acquisto in `portfolio.json`.**
 
 ---
 
 ### 6. Volume negli indicatori
-**Impatto:** basso-medio — migliora la qualità dei segnali su altcoin  
-**Sforzo:** medio
-
-RSI, MACD e Bollinger ignorano il volume. Un rally su volume basso è molto meno significativo
-di uno su volume alto — in crypto questa distinzione è spesso decisiva.
-
-Aggiungere un semplice indicatore:
-- **OBV (On-Balance Volume)**: cumulativo, misura se il volume segue il trend
-- Oppure più semplice: confronto volume corrente vs media 20gg (+/-30% = anomalia)
-- Contributo allo score: +5/-5 in caso di divergenza volume/prezzo significativa
-
-**Implementazione:** aggiungere `calcVolumeScore()` in `indicators.js`.
-Le candele Crypto.com già includono il volume — dati già disponibili, solo da usare.
+**Stato:** ✅ implementato (03/07/2026) — vedi sezione Completati
 
 ---
 
-### 7. Retry e resilienza su Frankfurter (cambio EUR/USD)
-**Impatto:** basso — ma un errore qui blocca l'intera analisi  
-**Sforzo:** minimo
-
-`getUsdEurRate()` in `marketData.js` usa `axios.get()` diretto su Frankfurter.
-Aggiungere retry 5xx come fatto per Crypto.com e CoinGecko.
-Alternativa: cachare il tasso EUR/USD per 1h e usare il valore precedente come fallback.
+### 7. Retry su Frankfurter
+**Stato:** ✅ implementato (03/07/2026) — vedi sezione Completati
 
 ---
 

@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const { getCandles } = require('./historicalData');
-const { calcRSI, calcSMA, calcMACD, calcBollingerBands } = require('./indicators');
+const { calcRSI, calcSMA, calcMACD, calcBollingerBands, calcVolumeScore, calcSupportResistance, scoreSupportResistance } = require('./indicators');
+const { saveSnapshot } = require('./historyManager');
 const { getFearGreedIndex } = require('./sentiment');
 const { getNewsSentiment } = require('./newsSentiment');
 const { getGlobalMetrics } = require('./globalMetrics');
@@ -116,53 +117,61 @@ function toAction(signal, symbol, quantity, allocationPct, isWatchlist = false) 
 }
 
 async function analyzeAsset(holding, fgScore, newsData, cgEnrichment) {
-  const candles = await getCandles(holding.symbol, '1D', 200);
-  const closes = candles.map(c => c.close);
-  const price = closes[closes.length - 1];
+  const candles = await getCandles(holding.symbol);
+  const closes  = candles.map(c => c.close);
+  const price   = closes[closes.length - 1];
 
-  const rsi = calcRSI(closes, 14);
-  const sma50 = calcSMA(closes, 50).at(-1);
+  const rsi   = calcRSI(closes, 14);
+  const sma50  = calcSMA(closes, 50).at(-1);
   const sma200 = calcSMA(closes, 200).at(-1);
-  const macd = calcMACD(closes);
-  const bb = calcBollingerBands(closes, 20);
+  const macd   = calcMACD(closes);
+  const bb     = calcBollingerBands(closes, 20);
+  const volScore = calcVolumeScore(candles);
+  const sr       = calcSupportResistance(candles);
+  const srScore  = scoreSupportResistance(price, sr);
 
-  const rsiScore = scoreRSI(rsi);
+  const rsiScore   = scoreRSI(rsi);
   const trendScore = scoreTrend(price, sma50, sma200);
-  const macdScore = scoreMACDResult(macd);
-  const bbScore = scoreBB(price, bb);
+  const macdScore  = scoreMACDResult(macd);
+  const bbScore    = scoreBB(price, bb);
 
-  const news = newsData?.[holding.symbol] ?? { score: 0, label: 'neutro', headlines: [], count: 0 };
-  const newsNote = news.count > 0
-    ? `News sentiment: ${news.label} (${news.count} articoli — score ${news.score > 0 ? '+' : ''}${news.score})`
+  const news = newsData?.[holding.symbol] ?? { score: 0, label: 'n/d', headlines: [], count: 0 };
+  const sentimentNote = news.count > 0
+    ? `Community sentiment: ${news.label} (score ${news.score > 0 ? '+' : ''}${news.score})`
     : null;
 
-  const total = rsiScore.points + trendScore.points + macdScore.points + bbScore.points + fgScore + news.score;
+  const total  = rsiScore.points + trendScore.points + macdScore.points + bbScore.points
+               + volScore.points + srScore.points + fgScore + news.score;
   const signal = toSignal(total);
 
-  const reasons = [rsiScore.note, trendScore.note, macdScore.note, bbScore.note, newsNote]
-    .filter(Boolean);
+  const reasons = [
+    rsiScore.note, trendScore.note, macdScore.note, bbScore.note,
+    volScore.note, srScore.note, sentimentNote,
+  ].filter(Boolean);
 
   const enrich = cgEnrichment?.[holding.symbol] ?? null;
 
   return {
-    symbol: holding.symbol,
-    name: holding.name,
+    symbol:      holding.symbol,
+    name:        holding.name,
     signal,
-    score: total,
+    score:       total,
     rsi,
     sma50,
     sma200,
-    macd: macd ? { value: macd.macd, histogram: macd.histogram } : null,
+    macd:        macd ? { value: macd.macd, histogram: macd.histogram } : null,
     bb,
+    sr,
+    volumeScore: volScore,
     news,
     reasons,
-    action: toAction(signal, holding.symbol, holding.quantity, holding.allocationPct, holding.isWatchlist),
+    action:      toAction(signal, holding.symbol, holding.quantity, holding.allocationPct, holding.isWatchlist),
     isWatchlist: holding.isWatchlist ?? false,
-    priceEur:       holding.priceEur       ?? null,
-    change24hPct:   holding.change24hPct   ?? null,
-    athChangePct:    enrich?.athChangePct    ?? null,
-    marketCapRank:   enrich?.marketCapRank   ?? null,
-    priceChange7dPct: enrich?.priceChange7dPct ?? null,
+    priceEur:          holding.priceEur       ?? null,
+    change24hPct:      holding.change24hPct   ?? null,
+    athChangePct:      enrich?.athChangePct    ?? null,
+    marketCapRank:     enrich?.marketCapRank   ?? null,
+    priceChange7dPct:  enrich?.priceChange7dPct ?? null,
   };
 }
 
@@ -178,11 +187,13 @@ async function runAdvisor() {
   const portfolioSymbols = portfolio.holdings.map(h => h.symbol);
   const allSymbols = [...portfolioSymbols, ...watchlistSymbols];
 
-  const [newsData, globalMetrics, cgEnrichment] = await Promise.all([
-    getNewsSentiment(allSymbols),
+  // Enrichment e global metrics in parallelo (endpoint batch, non individuali)
+  const [globalMetrics, cgEnrichment] = await Promise.all([
     getGlobalMetrics(),
     getCoinGeckoEnrichment(allSymbols),
   ]);
+  // Sentiment separato: fa 13 call individuali con sleep 2s — evita conflitti rate limit
+  const newsData = await getNewsSentiment(allSymbols);
 
   // Sequenziale per rispettare il rate limit di CoinGecko free tier
   const analyses = [];
@@ -209,13 +220,18 @@ async function runAdvisor() {
     }
   }
 
+  const sortedAnalyses  = analyses.sort((a, b) => b.score - a.score);
+  const sortedWatchlist = watchlistAnalyses.sort((a, b) => b.score - a.score);
+
+  saveSnapshot(sortedAnalyses, sortedWatchlist);
+
   return {
     portfolio,
     fearGreed,
     globalMetrics,
     newsData,
-    analyses: analyses.sort((a, b) => b.score - a.score),
-    watchlistAnalyses: watchlistAnalyses.sort((a, b) => b.score - a.score),
+    analyses:         sortedAnalyses,
+    watchlistAnalyses: sortedWatchlist,
   };
 }
 

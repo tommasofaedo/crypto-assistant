@@ -77,4 +77,77 @@ function calcBollingerBands(closes, period = 20) {
   };
 }
 
-module.exports = { calcRSI, calcSMA, calcEMA, calcMACD, calcBollingerBands };
+function calcOBV(candles) {
+  if (candles.length < 2) return [];
+  let obv = 0;
+  const result = [0];
+  for (let i = 1; i < candles.length; i++) {
+    if (candles[i].close > candles[i - 1].close)      obv += candles[i].volume;
+    else if (candles[i].close < candles[i - 1].close) obv -= candles[i].volume;
+    result.push(obv);
+  }
+  return result;
+}
+
+function calcVolumeScore(candles) {
+  const hasVol = candles.some(c => c.volume > 0);
+  if (!hasVol || candles.length < 21) return { points: 0, note: null };
+
+  const vols = candles.map(c => c.volume);
+  const avg20  = vols.slice(-21, -1).reduce((a, b) => a + b, 0) / 20;
+  const lastVol = vols[vols.length - 1];
+  const ratio   = avg20 > 0 ? lastVol / avg20 : 1;
+
+  const obv          = calcOBV(candles);
+  const obvRecentAvg = obv.slice(-5).reduce((a, b) => a + b, 0) / 5;
+  const obvPrevAvg   = obv.slice(-10, -5).reduce((a, b) => a + b, 0) / 5;
+  const obvRising    = obvRecentAvg > obvPrevAvg;
+  const priceUp      = candles[candles.length - 1].close >= candles[candles.length - 2].close;
+
+  if (ratio >= 1.5) {
+    const extra = `+${((ratio - 1) * 100).toFixed(0)}% sopra media`;
+    if  (priceUp && obvRising)   return { points: +10, note: `Volume ${extra}, OBV crescente — momentum confermato` };
+    if (!priceUp && !obvRising)  return { points: -10, note: `Volume ${extra}, OBV calante — pressione di vendita` };
+    if  (priceUp && !obvRising)  return { points:  -5, note: `Rialzo su volume elevato ma OBV diverge — segnale misto` };
+    return                              { points:  +5, note: `Calo su volume elevato ma OBV diverge rialzista — possibile inversione` };
+  }
+
+  if (ratio < 0.5) return { points: -3, note: `Volume basso (${(ratio * 100).toFixed(0)}% media 20gg) — segnali meno affidabili` };
+  if (obvRising)   return { points: +3, note: 'OBV in crescita — accumulo graduale' };
+  return                  { points: -3, note: 'OBV in calo — distribuzione graduale' };
+}
+
+function calcSupportResistance(candles, lookback = 5) {
+  if (candles.length < lookback * 2 + 5) return null;
+
+  const pivotHighs = [], pivotLows = [];
+  for (let i = lookback; i < candles.length - lookback; i++) {
+    const slice = candles.slice(i - lookback, i + lookback + 1);
+    if (candles[i].high >= Math.max(...slice.map(c => c.high))) pivotHighs.push(candles[i].high);
+    if (candles[i].low  <= Math.min(...slice.map(c => c.low)))  pivotLows.push(candles[i].low);
+  }
+
+  const price      = candles[candles.length - 1].close;
+  const support    = pivotLows.filter(p => p < price).sort((a, b) => b - a)[0] ?? null;
+  const resistance = pivotHighs.filter(p => p > price).sort((a, b) => a - b)[0] ?? null;
+
+  return { support, resistance };
+}
+
+function scoreSupportResistance(price, sr) {
+  if (!sr) return { points: 0, note: null };
+  const { support, resistance } = sr;
+  const nearPct = (level) => Math.abs(price - level) / level * 100;
+
+  if (support    && nearPct(support)    < 2) return { points: +8, note: `A ridosso del supporto $${support.toFixed(2)} — zona di rimbalzo` };
+  if (resistance && nearPct(resistance) < 2) return { points: -8, note: `A ridosso della resistenza $${resistance.toFixed(2)} — possibile rifiuto` };
+  if (support    && nearPct(support)    < 5) return { points: +4, note: `Vicino al supporto $${support.toFixed(2)}` };
+  if (resistance && nearPct(resistance) < 5) return { points: -4, note: `Vicino alla resistenza $${resistance.toFixed(2)}` };
+
+  return { points: 0, note: null };
+}
+
+module.exports = {
+  calcRSI, calcSMA, calcEMA, calcMACD, calcBollingerBands,
+  calcVolumeScore, calcSupportResistance, scoreSupportResistance,
+};

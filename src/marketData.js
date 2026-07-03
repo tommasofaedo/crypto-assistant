@@ -77,9 +77,23 @@ async function cgGet(path, params, retries = 4) {
   }
 }
 
-async function getUsdEurRate() {
-  const r = await axios.get('https://api.frankfurter.app/latest?from=USD&to=EUR', { timeout: 10000 });
-  return r.data.rates.EUR;
+async function getUsdEurRate(retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const r = await axios.get('https://api.frankfurter.app/latest?from=USD&to=EUR', { timeout: 10000 });
+      return r.data.rates.EUR;
+    } catch (err) {
+      const status = err.response?.status;
+      const isRetryable = (status >= 500 && status < 600) || !err.response;
+      if (isRetryable && attempt < retries) {
+        const wait = 5000 * attempt;
+        console.log(`[Frankfurter] ${status ?? 'rete'}, attendo ${wait / 1000}s (tentativo ${attempt}/${retries})...`);
+        await sleep(wait);
+      } else {
+        throw err;
+      }
+    }
+  }
 }
 
 async function getCryptoComPrices(symbols, eurRate) {

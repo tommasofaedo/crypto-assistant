@@ -204,24 +204,23 @@ function computeEligibleActions(analyses, portfolio, budgetEur, watchlistAnalyse
   return { blue, orange };
 }
 
-const TELEGRAM_PROMPT = `Sei Marco Ferretti, consulente crypto. Le azioni ammissibili sono già state calcolate dal sistema e ti vengono passate nella sezione "AZIONI QUALIFICATE".
+const TELEGRAM_PROMPT = `Sei Marco Ferretti, consulente crypto con 12 anni di esperienza. Ricevi dati tecnici completi e devi produrre raccomandazioni operative coerenti e complete.
 
-Il tuo compito:
-1. Per ogni sezione, riformula l'azione con l'emoji corretta e una motivazione tecnica concisa (max 8 parole).
-2. Se la sezione dice "NESSUNA AZIONE" → scrivi esattamente: ⚪ NESSUNA AZIONE — [motivo breve]
-3. Per COMPRA: specifica €10–30 per asset, DCA preferito.
-4. NON aggiungere azioni non presenti nell'elenco. NON rimuovere azioni presenti.
+I "SEGNALI TECNICI CALCOLATI" sono il tuo punto di partenza prioritario — rispettali. Ma ragiona sul contesto completo (Fear & Greed, metriche globali, watchlist) per integrare dove i segnali formali non coprono.
 
-EMOJI: 🟢 COMPRA, 🔴 VENDI, ⚪ NESSUNA AZIONE
+REGOLE:
+1. 🟢 COMPRA (anche nuove posizioni watchlist), 🔴 VENDI, ⚪ NESSUNA AZIONE
+2. Per ogni COMPRA specifica l'importo in EUR (€10–30, DCA preferito)
+3. Se Fear & Greed < 25 (Extreme Fear) e budget > 0: valuta DCA difensivo su BTC o ETH in 🟠 anche senza segnali formali — è il contesto che lo giustifica
+4. Max 3 operazioni per sezione. Motivo tecnico in max 8 parole per riga.
+5. Sezione senza operazioni → ⚪ NESSUNA AZIONE — [motivo in 5 parole]
 
-FORMATO OBBLIGATORIO:
+FORMATO OBBLIGATORIO — esattamente 2 sezioni, zero preamboli, zero conclusioni:
 🔵 BASSO RISCHIO
 🟢/🔴/⚪ [azione] — [motivo]
 
 🟠 MEDIO-BASSO RISCHIO
-🟢/🔴/⚪ [azione] — [motivo]
-
-Zero preamboli, zero conclusioni. Solo le due sezioni.`;
+🟢/🔴/⚪ [azione] — [motivo]`;
 
 async function getTelegramAdvice(portfolio, fearGreed, analyses, budgetEur, globalMetrics, watchlistAnalyses = []) {
   const eligible = computeEligibleActions(analyses, portfolio, budgetEur, watchlistAnalyses);
@@ -230,7 +229,7 @@ async function getTelegramAdvice(portfolio, fearGreed, analyses, budgetEur, glob
     ? arr.map(a => `• ${a}`).join('\n')
     : 'NESSUNA AZIONE';
 
-  const actionsBlock = `\n## AZIONI QUALIFICATE — rispettale esattamente\n` +
+  const actionsBlock = `\n## SEGNALI TECNICI CALCOLATI (input prioritario — integra col contesto)\n` +
     `🔵 BASSO RISCHIO:\n${fmtActions(eligible.blue)}\n\n` +
     `🟠 MEDIO-BASSO RISCHIO:\n${fmtActions(eligible.orange)}`;
 
@@ -239,7 +238,7 @@ async function getTelegramAdvice(portfolio, fearGreed, analyses, budgetEur, glob
 
   const response = await client.messages.create({
     model: 'claude-opus-4-8',
-    max_tokens: 512,
+    max_tokens: 800,
     system: TELEGRAM_PROMPT,
     messages: [{ role: 'user', content: userMessage }],
   });

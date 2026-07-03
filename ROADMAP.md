@@ -11,15 +11,33 @@ Le chiamate a Crypto.com ticker e candlestick usavano `axios.get()` diretto senz
 Un 520/502 transitorio crashava l'intera analisi. Aggiunta funzione `cdcGet` con backoff
 5s × tentativo (max 3 tentativi) in `marketData.js` e `historicalData.js`.
 
-### News sentiment reale con CryptoPanic (03/07/2026)
-`newsSentiment.js` era uno stub che restituiva sempre 0. Integrata l'API CryptoPanic
-(piano free, registrazione su cryptopanic.com). Analizza i voti (positive/negative/liked/toxic)
-degli ultimi articoli per ogni asset e calcola un punteggio da -5 a +5 che alimenta lo score
-tecnico. Richiede `CRYPTOPANIC_API_KEY` nel `.env` — graceful fallback a 0 se assente.
+### Retry su Crypto.com esteso (03/07/2026)
+`cdcGet` con backoff 5s × tentativo aggiunto anche alle chiamate Crypto.com ticker
+e candlestick, non solo CoinGecko. Un 520/502 transitorio non crasha più l'analisi.
 
 ---
 
 ## 🔲 Da fare
+
+### 2. News sentiment reale
+**Impatto:** alto — dimensione oggi completamente cieca  
+**Sforzo:** medio  
+**Stato:** ⛔ bloccato — CryptoPanic ha eliminato il piano free (aprile 2026)
+
+Alternative valutate e stato:
+
+| Fonte | Costo | Stato |
+|-------|-------|-------|
+| CryptoPanic | Gratis → ora **a pagamento** | ❌ eliminato |
+| **CoinGecko community sentiment** | Gratis | 🔲 fattibile — `/coins/{id}` restituisce `sentiment_votes_up_percentage`. Richiede una call per asset (13 call separate, ~30s extra). Da implementare con cache 1h |
+| RSS CoinDesk/CoinTelegraph + keyword | Gratis, no auth | 🔲 fattibile — parsing RSS + lista keyword bullish/bearish. Più rozzo ma zero dipendenze |
+| LunarCrush / Santiment | A pagamento | ❌ fuori budget |
+
+**Prossimo passo consigliato:** CoinGecko community sentiment — già nell'infrastruttura,
+zero nuove dipendenze. Batching non possibile, quindi aggiungere sleep 2s tra call
+e cachare il risultato per 1h per non sovraccaricare il free tier.
+
+---
 
 ### 3. Allerta proattiva su Telegram
 **Impatto:** alto — Marco diventa proattivo, non solo reattivo  

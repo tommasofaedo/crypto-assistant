@@ -1,5 +1,6 @@
 require('dotenv').config();
 const { runAdvisor } = require('./src/advisor');
+const { getTelegramAdvice } = require('./src/aiAdvisor');
 
 function fmt(n, dec = 2) { return n != null ? n.toFixed(dec) : 'n/d'; }
 
@@ -101,8 +102,12 @@ async function main() {
   }
 
   console.log('\n' + '══════════════════════════════════════════════════════');
-  console.log('DATI PRONTI — Ora chiedi le raccomandazioni a Claude Code');
+  console.log('RACCOMANDAZIONE MARCO FERRETTI (identica a Telegram)');
   console.log('══════════════════════════════════════════════════════\n');
+
+  const aiText = await getTelegramAdvice(portfolio, fearGreed, analyses, budgetEur, globalMetrics, watchlistAnalyses);
+  console.log(aiText);
+  console.log('\n' + '══════════════════════════════════════════════════════\n');
 }
 
 main().catch(err => {

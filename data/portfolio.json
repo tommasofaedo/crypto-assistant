@@ -5,15 +5,15 @@
     {
       "symbol": "ETH",
       "name": "Ethereum",
-      "quantity": 0.74072421,
-      "avgBuyPrice": 1667,
+      "quantity": 0.75050668,
+      "avgBuyPrice": 1665,
       "valueAtSnapshot": 1004.23,
-      "notes": "15 acquisti diretti €1235 + basket €18.75 = €1253.81 totali. Parte ETH in staking DPoS (~0.1 ETH premi). Avg effettivo su holding attuale."
+      "notes": "16 acquisti diretti €1250 + basket €18.75 = €1268.81 totali. Parte ETH in staking DPoS (~0.1 ETH premi). Avg effettivo su holding attuale."
     },
     {
       "symbol": "SOL",
       "name": "Solana",
-      "quantity": 11.8795,
+      "quantity": 11.88219,
       "avgBuyPrice": 143,
       "valueAtSnapshot": 730.49,
       "notes": "8 acquisti diretti + basket = €1696 totali. ~10.9 SOL in staking DPoS. ~1.2 SOL da premi compound. Avg effettivo su holding attuale."
@@ -21,10 +21,10 @@
     {
       "symbol": "BTC",
       "name": "Bitcoin",
-      "quantity": 0.01162241,
-      "avgBuyPrice": 30027,
+      "quantity": 0.01207291,
+      "avgBuyPrice": 30977,
       "valueAtSnapshot": 625.58,
-      "notes": "0.003 BTC acquistati su CDC (€145.70). 0.007133 BTC netti da Binance (comprati 2017-2019 a ~€28.500/BTC stima, depositati CDC 2021-03-10 poi metà ritrasfertiti). Totale stimato €349."
+      "notes": "0.003 BTC acquistati su CDC (€145.70). 0.007133 BTC netti da Binance (comprati 2017-2019 a ~€28.500/BTC stima, depositati CDC 2021-03-10 poi metà ritrasfertiti). Acquisto €25 il 2026-07-03. Totale stimato €374."
     },
     {
       "symbol": "XRP",
@@ -45,7 +45,7 @@
     {
       "symbol": "CRO",
       "name": "Cronos",
-      "quantity": 332.84,
+      "quantity": 332.87354,
       "avgBuyPrice": 0.37,
       "valueAtSnapshot": 16.04,
       "notes": "€121.74 acquistati (5 ops, avg €0.11/CRO). Resto da cashback carta e premi DPoS (essenzialmente gratis). Avg effettivo su holding totale. Asset NO_SELL."

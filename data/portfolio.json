@@ -5,10 +5,10 @@
     {
       "symbol": "ETH",
       "name": "Ethereum",
-      "quantity": 0.78225623,
-      "avgBuyPrice": 1661,
+      "quantity": 0.79185323,
+      "avgBuyPrice": 1660,
       "valueAtSnapshot": 1004.23,
-      "notes": "16 acquisti diretti €1250 + basket €18.75 = €1268.81 totali. +€25 acquisto 04/07 (0.015854 ETH) + €25 acquisto 06/07 (0.015733 ETH @ ~€1589). Premi staking 06/07: +0.00016255 ETH (DPoS+DefiLending). Parte ETH in staking DPoS. Avg effettivo su holding attuale."
+      "notes": "16 acquisti diretti €1250 + basket €18.75 = €1268.81 totali. +€25 acquisto 04/07 (0.015854 ETH) + €25 acquisto 06/07 mattina (0.015733 ETH @ ~€1589) + €15 acquisto 06/07 pomeriggio (0.009597 ETH @ ~€1563). Premi staking 06/07: +0.00016255 ETH (DPoS+DefiLending). Parte ETH in staking DPoS. Avg effettivo su holding attuale."
     },
     {
       "symbol": "SOL",
@@ -21,10 +21,10 @@
     {
       "symbol": "BTC",
       "name": "Bitcoin",
-      "quantity": 0.01296391,
-      "avgBuyPrice": 32705,
+      "quantity": 0.01323521,
+      "avgBuyPrice": 33175,
       "valueAtSnapshot": 625.58,
-      "notes": "0.003 BTC acquistati su CDC (€145.70). 0.007133 BTC netti da Binance (comprati 2017-2019 a ~€28.500/BTC stima, depositati CDC 2021-03-10 poi metà ritrasfertiti). Acquisti €25 il 2026-07-03 + €25 il 2026-07-04 (0.0004472 BTC) + €25 il 2026-07-06 (0.0004438 BTC @ ~€56331). Totale stimato €424."
+      "notes": "0.003 BTC acquistati su CDC (€145.70). 0.007133 BTC netti da Binance (comprati 2017-2019 a ~€28.500/BTC stima, depositati CDC 2021-03-10 poi metà ritrasfertiti). Acquisti €25 il 2026-07-03 + €25 il 2026-07-04 (0.0004472 BTC) + €25 il 2026-07-06 mattina (0.0004438 BTC @ ~€56331) + €15 il 2026-07-06 pomeriggio (0.0002713 BTC @ ~€55290). Totale stimato €439."
     },
     {
       "symbol": "XRP",

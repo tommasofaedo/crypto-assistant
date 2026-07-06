@@ -12,7 +12,7 @@ Analisi tecnica automatica del portafoglio crypto con raccomandazioni AI in ital
 - **Watchlist**: analisi tecnica su asset non in portafoglio — segnala solo opportunità di acquisto (mai vendita)
 - **Coerenza garantita**: locale e Telegram usano la stessa funzione AI — la raccomandazione è identica su entrambi i canali
 - Bot Telegram con long polling — risponde a `/analisi 100` o linguaggio naturale
-- Report giornaliero automatico ogni mattina via GitHub Actions (costo ~€0/mese su repo pubblica)
+- Report giornaliero automatico ogni mattina via GitHub Actions (costo ~€0/mese su repo pubblica), con **budget default €30/giorno** — così l'analisi delle 09:00 può proporre anche acquisti (i lanci manuali restano a budget scelto dall'utente)
 
 ## Struttura
 
@@ -34,7 +34,7 @@ crypto_assistant/
 ├── data/portfolio.json      # quantità asset detenuti
 ├── data/watchlist.json      # asset non in portafoglio da monitorare
 └── .github/workflows/
-    ├── daily-report.yml     # report mattutino 09:00 IT
+    ├── daily-report.yml     # report mattutino 09:00 IT (budget default €30)
     └── telegram-bot.yml     # bot attivo 20h/giorno in 4 finestre da 5h
 ```
 

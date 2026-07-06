@@ -19,7 +19,7 @@ jobs:
         run: npm install
 
       - name: Send daily report
-        run: node telegram-report.js
+        run: node telegram-report.js 30   # budget default €30/giorno per il report automatico delle 9:00
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}

@@ -1,30 +1,30 @@
 {
-  "updatedAt": "2026-07-04",
+  "updatedAt": "2026-07-06",
   "currency": "EUR",
   "holdings": [
     {
       "symbol": "ETH",
       "name": "Ethereum",
-      "quantity": 0.76636068,
-      "avgBuyPrice": 1663,
+      "quantity": 0.78225623,
+      "avgBuyPrice": 1661,
       "valueAtSnapshot": 1004.23,
-      "notes": "16 acquisti diretti €1250 + basket €18.75 = €1268.81 totali. +€25 acquisto 04/07 (0.015854 ETH). Parte ETH in staking DPoS (~0.1 ETH premi). Avg effettivo su holding attuale."
+      "notes": "16 acquisti diretti €1250 + basket €18.75 = €1268.81 totali. +€25 acquisto 04/07 (0.015854 ETH) + €25 acquisto 06/07 (0.015733 ETH @ ~€1589). Premi staking 06/07: +0.00016255 ETH (DPoS+DefiLending). Parte ETH in staking DPoS. Avg effettivo su holding attuale."
     },
     {
       "symbol": "SOL",
       "name": "Solana",
-      "quantity": 11.88219,
+      "quantity": 11.88487683,
       "avgBuyPrice": 143,
       "valueAtSnapshot": 730.49,
-      "notes": "8 acquisti diretti + basket = €1696 totali. ~10.9 SOL in staking DPoS. ~1.2 SOL da premi compound. Avg effettivo su holding attuale."
+      "notes": "8 acquisti diretti + basket = €1696 totali. ~10.9 SOL in staking DPoS. ~1.2 SOL da premi compound. Premio DPoS 06/07: +0.00268683 SOL. Avg effettivo su holding attuale."
     },
     {
       "symbol": "BTC",
       "name": "Bitcoin",
-      "quantity": 0.01252011,
-      "avgBuyPrice": 31867,
+      "quantity": 0.01296391,
+      "avgBuyPrice": 32705,
       "valueAtSnapshot": 625.58,
-      "notes": "0.003 BTC acquistati su CDC (€145.70). 0.007133 BTC netti da Binance (comprati 2017-2019 a ~€28.500/BTC stima, depositati CDC 2021-03-10 poi metà ritrasfertiti). Acquisto €25 il 2026-07-03 + €25 il 2026-07-04 (0.0004472 BTC). Totale stimato €399."
+      "notes": "0.003 BTC acquistati su CDC (€145.70). 0.007133 BTC netti da Binance (comprati 2017-2019 a ~€28.500/BTC stima, depositati CDC 2021-03-10 poi metà ritrasfertiti). Acquisti €25 il 2026-07-03 + €25 il 2026-07-04 (0.0004472 BTC) + €25 il 2026-07-06 (0.0004438 BTC @ ~€56331). Totale stimato €424."
     },
     {
       "symbol": "XRP",
@@ -45,10 +45,10 @@
     {
       "symbol": "CRO",
       "name": "Cronos",
-      "quantity": 332.87354,
+      "quantity": 332.92342664,
       "avgBuyPrice": 0.37,
       "valueAtSnapshot": 16.04,
-      "notes": "€121.74 acquistati (5 ops, avg €0.11/CRO). Resto da cashback carta e premi DPoS (essenzialmente gratis). Avg effettivo su holding totale. Asset NO_SELL."
+      "notes": "€121.74 acquistati (5 ops, avg €0.11/CRO). Resto da cashback carta e premi DPoS (essenzialmente gratis). Premio DPoS 06/07: +0.04988664 CRO. Avg effettivo su holding totale. Asset NO_SELL."
     },
     {
       "symbol": "LINK",

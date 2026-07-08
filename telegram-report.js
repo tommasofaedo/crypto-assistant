@@ -6,23 +6,7 @@ const { getTelegramAdvice } = require('./src/aiAdvisor');
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-const SIGNAL_EMOJI = {
-  'STRONG BUY': '🟢🟢',
-  'BUY':        '🟢',
-  'HOLD':       '🟡',
-  'SELL':       '🔴',
-  'STRONG SELL':'🔴🔴',
-};
-
 function fmt(n, dec = 2) { return n != null ? n.toFixed(dec) : 'n/d'; }
-
-function fgEmoji(value) {
-  if (value <= 25) return '😨';
-  if (value <= 45) return '😰';
-  if (value <= 55) return '😐';
-  if (value <= 75) return '😊';
-  return '🤑';
-}
 
 function stripHtml(text) {
   return text.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&');
@@ -47,36 +31,33 @@ async function main() {
     hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome',
   });
 
-  let msg1 = `📊 <b>CRYPTO REPORT — ${date}</b>\n\n`;
-  msg1 += `${fgEmoji(fearGreed.value)} Fear &amp; Greed: <b>${fearGreed.value}/100</b> (${fearGreed.label})\n`;
-  msg1 += `💼 Portafoglio: <b>€${fmt(portfolio.totalValueEur)}</b>\n\n`;
+  let msg1 = `<b>CRYPTO REPORT — ${date}</b>\n\n`;
+  msg1 += `Fear &amp; Greed: <b>${fearGreed.value}/100</b> (${fearGreed.label})\n`;
+  msg1 += `Portafoglio: <b>€${fmt(portfolio.totalValueEur)}</b>\n\n`;
 
   for (const h of portfolio.holdings) {
-    const a = analyses.find(x => x.symbol === h.symbol);
-    const emoji = a ? (SIGNAL_EMOJI[a.signal] ?? '⚪') : '⚪';
     const dec = h.priceEur < 100 ? 2 : 0;
     const chg = (h.change24hPct >= 0 ? '+' : '') + fmt(h.change24hPct) + '%';
-    msg1 += `${emoji} <b>${h.symbol}</b>  €${fmt(h.priceEur, dec)}  ${chg}  €${fmt(h.valueEur)}\n`;
+    msg1 += `<b>${h.symbol}</b>  €${fmt(h.priceEur, dec)}  ${chg}  €${fmt(h.valueEur)}\n`;
   }
 
   const watchlistBuys = watchlistAnalyses.filter(a => a.signal === 'BUY' || a.signal === 'STRONG BUY');
   if (watchlistBuys.length > 0) {
-    msg1 += `\n\n👁 <b>Watchlist — segnali positivi</b>\n`;
+    msg1 += `\n\n<b>Watchlist — segnali positivi</b>\n`;
     for (const a of watchlistBuys) {
-      const emoji = SIGNAL_EMOJI[a.signal] ?? '⚪';
       const dec = a.priceEur && a.priceEur < 100 ? 2 : 0;
       const chg = a.change24hPct != null ? (a.change24hPct >= 0 ? '+' : '') + fmt(a.change24hPct) + '%' : '';
       const price = a.priceEur != null ? `€${fmt(a.priceEur, dec)}  ` : '';
-      msg1 += `${emoji} <b>${a.symbol}</b>  ${price}${chg}\n`;
+      msg1 += `<b>${a.symbol}</b>  ${price}${chg}\n`;
     }
   }
 
-  if (budgetEur > 0) msg1 += `\n💰 Budget: <b>€${fmt(budgetEur)}</b>`;
+  if (budgetEur > 0) msg1 += `\nBudget: <b>€${fmt(budgetEur)}</b>`;
 
   // Messaggio 2: raccomandazioni AI
   console.log('Generazione raccomandazioni AI...');
   const aiText = await getTelegramAdvice(portfolio, fearGreed, analyses, budgetEur, globalMetrics, watchlistAnalyses);
-  const msg2 = `🤖 <b>MARCO FERRETTI — Raccomandazioni</b>\n\n${aiText}`;
+  const msg2 = `<b>MARCO FERRETTI — Raccomandazioni</b>\n\n${aiText}`;
 
   if (localMode) {
     console.log('\n' + '═'.repeat(55));

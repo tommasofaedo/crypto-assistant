@@ -380,31 +380,31 @@ function allocReason(b, strategy) {
   return parts.join(', ') + levelsTag(b.levels);
 }
 
-// Rende il piano operativo in modo deterministico (mai dall'LLM). Core → 🔵, altcoin → 🟠.
+// Rende il piano operativo in modo deterministico (mai dall'LLM). Core = basso rischio, altcoin = medio-basso.
 function renderPlan(plan) {
   const { allocations, sells, strategy, mode } = plan;
   const modeLine = mode?.tilt
-    ? `⚙️ Conservativo · tilt balanced ATTIVO — ${mode.reason}\n\n`
-    : '⚙️ Conservativo\n\n';
+    ? `Strategia: base conservativa, tilt verso balanced ATTIVO — ${mode.reason}\n\n`
+    : `Strategia: conservativa\n\n`;
   const coreBuys = allocations.filter(a => a.isCore);
   const altBuys  = allocations.filter(a => !a.isCore);
 
   const blueLines = [];
-  for (const b of coreBuys) blueLines.push(`🟢 COMPRA €${b.eur} ${b.symbol} — ${allocReason(b, strategy)}`);
+  for (const b of coreBuys) blueLines.push(`COMPRA €${b.eur} ${b.symbol} — ${allocReason(b, strategy)}`);
   for (const s of sells.filter(s => s.strong))
-    blueLines.push(`🔴 VENDI 25% ${s.symbol} ~€${s.eur} — presa-profitto +${s.pnl.toFixed(0)}%, RSI ${s.rsi.toFixed(0)}`);
+    blueLines.push(`VENDI 25% ${s.symbol} ~€${s.eur} — presa-profitto +${s.pnl.toFixed(0)}%, RSI ${s.rsi.toFixed(0)}`);
 
   const orangeLines = [];
   for (const b of altBuys) {
     const tag = b.inPortfolio ? 'COMPRA' : 'NUOVA POSIZIONE';
-    orangeLines.push(`🟢 ${tag} €${b.eur} ${b.symbol} — ${allocReason(b, strategy)}`);
+    orangeLines.push(`${tag} €${b.eur} ${b.symbol} — ${allocReason(b, strategy)}`);
   }
   for (const s of sells.filter(s => !s.strong))
-    orangeLines.push(`🔴 VENDI 25% ${s.symbol} ~€${s.eur} — presa-profitto +${s.pnl.toFixed(0)}%, RSI ${s.rsi.toFixed(0)}`);
+    orangeLines.push(`VENDI 25% ${s.symbol} ~€${s.eur} — presa-profitto +${s.pnl.toFixed(0)}%, RSI ${s.rsi.toFixed(0)}`);
 
-  const fmt = (arr, empty) => arr.length ? arr.join('\n') : `⚪ NESSUNA AZIONE — ${empty}`;
-  return `${modeLine}🔵 BASSO RISCHIO (core BTC/ETH)\n${fmt(blueLines, 'core non sotto-pesato o budget assente')}\n\n` +
-         `🟠 MEDIO-BASSO RISCHIO (altcoin)\n${fmt(orangeLines, 'nessuna alt sopra soglia entro il tetto')}`;
+  const fmt = (arr, empty) => arr.length ? arr.join('\n') : `NESSUNA AZIONE — ${empty}`;
+  return `${modeLine}BASSO RISCHIO (core BTC/ETH)\n${fmt(blueLines, 'core non sotto-pesato o budget assente')}\n\n` +
+         `MEDIO-BASSO RISCHIO (altcoin)\n${fmt(orangeLines, 'nessuna alt sopra soglia entro il tetto')}`;
 }
 
 async function getTelegramAdvice(portfolio, fearGreed, analyses, budgetEur, globalMetrics, watchlistAnalyses = []) {
@@ -432,7 +432,7 @@ async function getTelegramAdvice(portfolio, fearGreed, analyses, budgetEur, glob
     commentary = `Fear & Greed ${fearGreed.value}/100 (${fearGreed.label}).`;
   }
 
-  return `${sections}\n\n💬 ${commentary}`;
+  return `${sections}\n\nContesto: ${commentary}`;
 }
 
 module.exports = { getAIAdvice, getTelegramAdvice, computeStrategicPlan, renderPlan };

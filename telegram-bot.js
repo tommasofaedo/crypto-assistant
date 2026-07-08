@@ -12,26 +12,10 @@ if (!BOT_TOKEN || !ALLOWED_CHAT) {
   process.exit(1);
 }
 
-const SIGNAL_EMOJI = {
-  'STRONG BUY': '🟢🟢',
-  'BUY':        '🟢',
-  'HOLD':       '🟡',
-  'SELL':       '🔴',
-  'STRONG SELL':'🔴🔴',
-};
-
 function fmt(n, dec = 2) { return n != null ? n.toFixed(dec) : 'n/d'; }
 
 function escapeHtml(text) {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function fgEmoji(v) {
-  if (v <= 25) return '😨';
-  if (v <= 45) return '😰';
-  if (v <= 55) return '😐';
-  if (v <= 75) return '😊';
-  return '🤑';
 }
 
 async function api(method, data = {}) {
@@ -68,7 +52,7 @@ function isAnalysisRequest(text) {
 
 async function handleAnalysis(chatId, budget) {
   if (isAnalyzing) {
-    await send(chatId, '⏳ Analisi già in corso, attendi 30 secondi...');
+    await send(chatId, 'Analisi già in corso, attendi 30 secondi...');
     return;
   }
   isAnalyzing = true;
@@ -76,7 +60,7 @@ async function handleAnalysis(chatId, budget) {
   // Progress message
   const prog = await api('sendMessage', {
     chat_id: chatId,
-    text: `⏳ <b>Analisi in corso...</b>\nBudget: <b>€${fmt(budget)}</b>\n\n<i>Raccolta dati di mercato e calcolo indicatori...</i>`,
+    text: `<b>Analisi in corso...</b>\nBudget: <b>€${fmt(budget)}</b>\n\n<i>Raccolta dati di mercato e calcolo indicatori...</i>`,
     parse_mode: 'HTML',
   });
 
@@ -91,7 +75,7 @@ async function handleAnalysis(chatId, budget) {
     const { portfolio, fearGreed, globalMetrics, analyses, watchlistAnalyses } = await runAdvisor();
 
     await editProg(
-      `⏳ <b>Analisi in corso...</b>\nBudget: <b>€${fmt(budget)}</b>\n\n<i>Generazione raccomandazioni Marco Ferretti...</i>`
+      `<b>Analisi in corso...</b>\nBudget: <b>€${fmt(budget)}</b>\n\n<i>Generazione raccomandazioni Marco Ferretti...</i>`
     );
 
     const aiText = await getTelegramAdvice(portfolio, fearGreed, analyses, budget, globalMetrics, watchlistAnalyses);
@@ -104,37 +88,34 @@ async function handleAnalysis(chatId, budget) {
       hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome',
     });
 
-    let snap = `📊 <b>CRYPTO REPORT — ${date}</b>\n\n`;
-    snap += `${fgEmoji(fearGreed.value)} Fear &amp; Greed: <b>${fearGreed.value}/100</b> (${fearGreed.label})\n`;
-    snap += `💼 Portafoglio: <b>€${fmt(portfolio.totalValueEur)}</b>\n\n`;
+    let snap = `<b>CRYPTO REPORT — ${date}</b>\n\n`;
+    snap += `Fear &amp; Greed: <b>${fearGreed.value}/100</b> (${fearGreed.label})\n`;
+    snap += `Portafoglio: <b>€${fmt(portfolio.totalValueEur)}</b>\n\n`;
 
     for (const h of portfolio.holdings) {
-      const a = analyses.find(x => x.symbol === h.symbol);
-      const emoji = a ? (SIGNAL_EMOJI[a.signal] ?? '⚪') : '⚪';
       const dec = h.priceEur < 100 ? 2 : 0;
       const chg = (h.change24hPct >= 0 ? '+' : '') + fmt(h.change24hPct) + '%';
-      snap += `${emoji} <b>${h.symbol}</b>  €${fmt(h.priceEur, dec)}  ${chg}  €${fmt(h.valueEur)}\n`;
+      snap += `<b>${h.symbol}</b>  €${fmt(h.priceEur, dec)}  ${chg}  €${fmt(h.valueEur)}\n`;
     }
 
     const watchlistBuys = watchlistAnalyses.filter(a => a.signal === 'BUY' || a.signal === 'STRONG BUY');
     if (watchlistBuys.length > 0) {
-      snap += `\n\n👁 <b>Watchlist — segnali positivi</b>\n`;
+      snap += `\n\n<b>Watchlist — segnali positivi</b>\n`;
       for (const a of watchlistBuys) {
-        const emoji = SIGNAL_EMOJI[a.signal] ?? '⚪';
         const dec = a.priceEur && a.priceEur < 100 ? 2 : 0;
         const chg = a.change24hPct != null ? (a.change24hPct >= 0 ? '+' : '') + fmt(a.change24hPct) + '%' : '';
         const price = a.priceEur != null ? `€${fmt(a.priceEur, dec)}  ` : '';
-        snap += `${emoji} <b>${a.symbol}</b>  ${price}${chg}\n`;
+        snap += `<b>${a.symbol}</b>  ${price}${chg}\n`;
       }
     }
 
-    if (budget > 0) snap += `\n💰 Budget: <b>€${fmt(budget)}</b>`;
+    if (budget > 0) snap += `\nBudget: <b>€${fmt(budget)}</b>`;
 
     await send(chatId, snap);
-    await send(chatId, `🤖 <b>MARCO FERRETTI — Raccomandazioni</b>\n\n${escapeHtml(aiText)}`);
+    await send(chatId, `<b>MARCO FERRETTI — Raccomandazioni</b>\n\n${escapeHtml(aiText)}`);
 
   } catch (err) {
-    await editProg(`❌ <b>Errore durante l'analisi</b>\n\n${err.message}`);
+    await editProg(`<b>Errore durante l'analisi</b>\n\n${err.message}`);
     console.error('Errore analisi:', err.message);
   } finally {
     isAnalyzing = false;
@@ -156,7 +137,7 @@ async function processUpdate(update) {
 
   if (lower === '/start' || lower === '/help') {
     await send(chatId,
-      `👋 <b>Crypto Assistant — Marco Ferretti</b>\n\n` +
+      `<b>Crypto Assistant — Marco Ferretti</b>\n\n` +
       `<b>Comandi:</b>\n` +
       `• <code>/analisi</code> — analisi senza budget\n` +
       `• <code>/analisi 100</code> — analisi con €100 disponibili\n` +

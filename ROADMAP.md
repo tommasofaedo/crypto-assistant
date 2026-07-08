@@ -144,6 +144,15 @@ principale è PM2 che duplica in locale.
 
 ---
 
+## 🔮 Da valutare — emersi dalla revisione 08/07/2026
+
+- **Backtest dei nuovi pesi/parametri**: validare lo scoring regime-aware e i parametri di `data/strategy.json` (tetti, soglie tilt) su dati storici prima di fidarsi ciecamente. Priorità alta: ora i pesi sono ragionati ma non validati empiricamente.
+- **Rigenerare il grafo graphify**: `graphify-out/` è stato costruito prima della riscrittura del motore (08/07) — è **stale**. Rigenerare per riflettere `computeStrategicPlan`, i nuovi indicatori e il layer strategico.
+- **Comando Telegram per la postura**: es. `/strategia conservativa|balanced|aggressiva` per cambiare `data/strategy.json` al volo senza editare il file a mano.
+- **Taratura soglie tilt adattivo**: dopo aver osservato il comportamento reale, calibrare `altConvictionScore` (40), `altConvictionOutperf` (20), `altSeasonIndex` (60).
+- **Livello 3 "Edge da derivati"** (scartato 08/07): funding rate + open interest dal server MCP Crypto.com. Da riconsiderare se si vuole un segnale di posizionamento professionale.
+- **Alert quando cambia la modalità**: notifica quando il motore passa da conservativo a tilt-balanced (o viceversa) — è un cambio di regime che vale la pena segnalare.
+
 ## 💡 Idee future (non pianificate)
 
 - **On-chain data**: Glassnode o Nansen free tier per flussi whale/exchange inflow

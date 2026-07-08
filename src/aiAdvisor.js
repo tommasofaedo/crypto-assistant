@@ -278,6 +278,11 @@ function resolveAdaptiveMode(strategy, analyses, watchlistAnalyses, globalMetric
   return { effStrategy: { ...strategy, coreBudgetShare, altMaxWeight }, mode };
 }
 
+// Trend ribassista forte in accelerazione = "coltello che cade": non ci si compra dentro.
+function isFallingKnife(regime) {
+  return !!regime && regime.type === 'trending' && regime.dir === 'down' && regime.adx >= 25;
+}
+
 // Piano operativo completo: unisce score tattico e fit strategico, alloca il budget, gestisce le vendite.
 // Core (BTC/ETH) → basso rischio (🔵); altcoin → medio-basso (🟠).
 function computeStrategicPlan(analyses, portfolio, budgetEur, fearGreed, watchlistAnalyses = [], globalMetrics = null) {
@@ -286,14 +291,21 @@ function computeStrategicPlan(analyses, portfolio, budgetEur, fearGreed, watchli
   const coreSet = new Set(baseStrategy.coreSymbols);
   const { effStrategy: strategy, mode } = resolveAdaptiveMode(baseStrategy, analyses, watchlistAnalyses, globalMetrics, coreSet);
 
-  // 1) Candidati all'acquisto: score sopra soglia, RSI non in blow-off, fit strategico > 0
+  // Postura prudente: barra di convinzione per DEPLOYARE capitale. Se niente la supera,
+  // "tenere i soldi liquidi" è un esito legittimo — non si compra per forza.
+  const prud = strategy.prudence ?? { enabled: false };
+  const minAltScore  = prud.enabled ? (prud.minAltScore  ?? 22) : 22;
+  const minCoreScore = prud.enabled ? (prud.minCoreScore ?? 22) : 22;
+
+  // 1) Candidati all'acquisto: score sopra la soglia di convinzione del tier, RSI non in blow-off, fit > 0
   const buys = [];
   for (const a of [...analyses, ...watchlistAnalyses]) {
     const s = a.score, r = a.rsi ?? 50;
-    if (!(budgetEur > 0 && s >= 22 && r < 80)) continue;
+    const isCore = coreSet.has(a.symbol);
+    const minScore = isCore ? minCoreScore : minAltScore;
+    if (!(budgetEur > 0 && s >= minScore && r < 80)) continue;
     const h = portfolio.holdings.find(x => x.symbol === a.symbol);
     const weight = h ? h.valueEur / total : 0;
-    const isCore = coreSet.has(a.symbol);
     const fit = strategicFit(a.symbol, weight, isCore, a.relativeStrength, strategy);
     if (fit <= 0) continue; // bloccato dal tetto di concentrazione
     buys.push({
@@ -304,17 +316,21 @@ function computeStrategicPlan(analyses, portfolio, budgetEur, fearGreed, watchli
     });
   }
 
-  // 2) DCA difensivo in Extreme Fear: garantisce almeno una gamba core anche senza segnale forte
+  // 2) DCA difensivo in Extreme Fear: SOLO su core sotto-pesato e NON in caduta (prudente).
+  // La paura da sola non basta: non si compra un coltello che cade né si alimenta un core già sovrappeso.
   if (budgetEur > 0 && fearGreed?.value != null && fearGreed.value < 25) {
     const hasCore = buys.some(b => b.isCore);
     if (!hasCore) {
-      // scegli il core più sotto-pesato come DCA difensivo
       let pick = null;
       for (const sym of strategy.coreSymbols) {
         const h = portfolio.holdings.find(x => x.symbol === sym);
         const a = analyses.find(x => x.symbol === sym);
         const weight = h ? h.valueEur / total : 0;
         const fit = strategicFit(sym, weight, true, a?.relativeStrength, strategy);
+        if (prud.enabled && prud.skipFallingKnifeDca) {
+          if (fit < 1) continue;                 // core non sotto-pesato → salta
+          if (isFallingKnife(a?.regime)) continue; // trend ribassista forte → non prendere il coltello
+        }
         if (!pick || fit > pick.fit) pick = { symbol: sym, name: a?.name ?? sym, isCore: true, inPortfolio: !!h, score: a?.score ?? 0, rsi: a?.rsi ?? 50, weight, fit, priority: fit * 10, regime: a?.regime, levels: a?.levels, defensive: true };
       }
       if (pick) buys.push(pick);
@@ -335,7 +351,8 @@ function computeStrategicPlan(analyses, portfolio, budgetEur, fearGreed, watchli
     }
   }
 
-  return { allocations, sells, strategy, mode };
+  const deployed = allocations.reduce((s, a) => s + a.eur, 0);
+  return { allocations, sells, strategy, mode, budgetEur, heldCash: Math.max(0, budgetEur - deployed) };
 }
 
 // Valida il commento dell'LLM: NON può contenere azioni operative né importi.
@@ -382,7 +399,7 @@ function allocReason(b, strategy) {
 
 // Rende il piano operativo in modo deterministico (mai dall'LLM). Core = basso rischio, altcoin = medio-basso.
 function renderPlan(plan) {
-  const { allocations, sells, strategy, mode } = plan;
+  const { allocations, sells, strategy, mode, budgetEur, heldCash } = plan;
   const modeLine = mode?.tilt
     ? `Strategia: base conservativa, tilt verso balanced ATTIVO — ${mode.reason}\n\n`
     : `Strategia: conservativa\n\n`;
@@ -403,8 +420,16 @@ function renderPlan(plan) {
     orangeLines.push(`VENDI 25% ${s.symbol} ~€${s.eur} — presa-profitto +${s.pnl.toFixed(0)}%, RSI ${s.rsi.toFixed(0)}`);
 
   const fmt = (arr, empty) => arr.length ? arr.join('\n') : `NESSUNA AZIONE — ${empty}`;
-  return `${modeLine}BASSO RISCHIO (core BTC/ETH)\n${fmt(blueLines, 'core non sotto-pesato o budget assente')}\n\n` +
-         `MEDIO-BASSO RISCHIO (altcoin)\n${fmt(orangeLines, 'nessuna alt sopra soglia entro il tetto')}`;
+  let out = `${modeLine}BASSO RISCHIO (core BTC/ETH)\n${fmt(blueLines, 'nessun setup core abbastanza convincente')}\n\n` +
+            `MEDIO-BASSO RISCHIO (altcoin)\n${fmt(orangeLines, 'nessuna alt sopra la soglia di convinzione entro il tetto')}`;
+
+  // Liquidità come esito esplicito: se resta budget non speso, è una scelta attiva (postura prudente)
+  if (budgetEur > 0 && heldCash > 0) {
+    out += allocations.length
+      ? `\n\nLiquidità: €${heldCash} non investiti — il resto del budget non ha trovato un'occasione abbastanza forte`
+      : `\n\nLiquidità: tieni i €${heldCash} — nessuna occasione abbastanza forte oggi, meglio aspettare un ingresso migliore (postura prudente)`;
+  }
+  return out;
 }
 
 async function getTelegramAdvice(portfolio, fearGreed, analyses, budgetEur, globalMetrics, watchlistAnalyses = []) {

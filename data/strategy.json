@@ -12,5 +12,11 @@
     "altSeasonIndex": 60,
     "tiltCoreBudgetShare": 0.5,
     "tiltAltMaxWeight": 0.15
+  },
+  "prudence": {
+    "enabled": true,
+    "minAltScore": 35,
+    "minCoreScore": 20,
+    "skipFallingKnifeDca": true
   }
 }

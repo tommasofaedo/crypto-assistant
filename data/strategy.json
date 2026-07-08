@@ -18,5 +18,11 @@
     "minAltScore": 35,
     "minCoreScore": 20,
     "skipFallingKnifeDca": true
+  },
+  "sell": {
+    "note": "Vendita = solo presa-profitto parziale. MAI in perdita, MAI tutta la posizione. minProfit/minRsi devono valere ENTRAMBI. fraction = quota della posizione da vendere (0.25 = 25%).",
+    "minProfit": 40,
+    "minRsi": 65,
+    "fraction": 0.25
   }
 }

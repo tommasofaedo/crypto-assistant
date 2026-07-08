@@ -339,15 +339,21 @@ function computeStrategicPlan(analyses, portfolio, budgetEur, fearGreed, watchli
 
   const allocations = allocateBudget(buys, budgetEur, strategy);
 
-  // 3) Vendite = solo presa-profitto disciplinata (mandato): mai in perdita, winner maturo a RSI alto
+  // 3) Vendite = solo presa-profitto disciplinata (mandato): mai in perdita, mai tutta la posizione.
+  // Soglie esterne in data/strategy.json → blocco "sell". Vende sempre una FRAZIONE (fraction).
+  const sellCfg = strategy.sell ?? {};
+  const sellMinProfit = sellCfg.minProfit ?? 40;
+  const sellMinRsi    = sellCfg.minRsi ?? 65;
+  const sellFraction  = sellCfg.fraction ?? 0.25;
+  const sellPct = Math.round(sellFraction * 100);
   const sells = [];
   for (const a of analyses) {
     const h = portfolio.holdings.find(x => x.symbol === a.symbol);
     if (!h || NO_SELL.has(a.symbol)) continue;
     const pnl = h.pnlPct ?? null;
     const r = a.rsi ?? 50;
-    if (pnl != null && pnl >= 40 && r >= 65) {
-      sells.push({ symbol: a.symbol, eur: Math.round(h.valueEur * 0.25), pnl, rsi: r, regime: a.regime, strong: a.score <= -20 });
+    if (pnl != null && pnl >= sellMinProfit && r >= sellMinRsi) {
+      sells.push({ symbol: a.symbol, eur: Math.round(h.valueEur * sellFraction), pct: sellPct, pnl, rsi: r, regime: a.regime, strong: a.score <= -20 });
     }
   }
 
@@ -409,7 +415,7 @@ function renderPlan(plan) {
   const blueLines = [];
   for (const b of coreBuys) blueLines.push(`COMPRA €${b.eur} ${b.symbol} — ${allocReason(b, strategy)}`);
   for (const s of sells.filter(s => s.strong))
-    blueLines.push(`VENDI 25% ${s.symbol} ~€${s.eur} — presa-profitto +${s.pnl.toFixed(0)}%, RSI ${s.rsi.toFixed(0)}`);
+    blueLines.push(`VENDI ${s.pct}% ${s.symbol} ~€${s.eur} — presa-profitto +${s.pnl.toFixed(0)}%, RSI ${s.rsi.toFixed(0)}`);
 
   const orangeLines = [];
   for (const b of altBuys) {
@@ -417,7 +423,7 @@ function renderPlan(plan) {
     orangeLines.push(`${tag} €${b.eur} ${b.symbol} — ${allocReason(b, strategy)}`);
   }
   for (const s of sells.filter(s => !s.strong))
-    orangeLines.push(`VENDI 25% ${s.symbol} ~€${s.eur} — presa-profitto +${s.pnl.toFixed(0)}%, RSI ${s.rsi.toFixed(0)}`);
+    orangeLines.push(`VENDI ${s.pct}% ${s.symbol} ~€${s.eur} — presa-profitto +${s.pnl.toFixed(0)}%, RSI ${s.rsi.toFixed(0)}`);
 
   const fmt = (arr, empty) => arr.length ? arr.join('\n') : `NESSUNA AZIONE — ${empty}`;
   let out = `${modeLine}BASSO RISCHIO (core BTC/ETH)\n${fmt(blueLines, 'nessun setup core abbastanza convincente')}\n\n` +

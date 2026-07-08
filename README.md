@@ -5,34 +5,38 @@ Analisi tecnica automatica del portafoglio crypto con raccomandazioni AI in ital
 ## Funzionalità
 
 - Prezzi e storici live da **Crypto.com Exchange API** (fallback CoinGecko), con retry automatico su errori 5xx
-- Indicatori tecnici calcolati in locale: RSI(14), SMA50/200, MACD, Bande di Bollinger
-- Fear & Greed Index e metriche globali di mercato (CoinGecko)
-- Segnali BUY/SELL con **soglie deterministiche in codice** — l'AI non può inventarsi segnali non supportati dai dati
-- Ragionamento contestuale: in condizioni di Extreme Fear l'AI integra la logica tecnica con il contesto macro
+- **Analisi multi-timeframe** (settimanale + giornaliero + 4h) con 13 fattori tecnici calcolati in locale: RSI(14), SMA50/200, MACD, Bande di Bollinger, **ADX/DMI**, **StochRSI**, **ATR**, **divergenze prezzo/RSI**, **forza relativa vs BTC**, Volume/OBV, Supporti/Resistenze, Fear & Greed, Community Sentiment
+- **Scoring regime-aware**: l'RSI viene interpretato secondo il regime di mercato (trend forte vs laterale) rilevato dall'ADX — l'RSI alto in un trend rialzista non è più penalizzato come "vendita"
+- **Decisione 100% deterministica in codice**: l'AI non può inventare segnali, asset o importi — produce solo una nota di contesto validata (scartata se contiene azioni operative o importi)
+- **Layer strategico di portafoglio** (`data/strategy.json`): ogni euro del budget va dove rende di più aggiustato per il rischio — favorisce la qualità sotto-pesata (BTC/ETH), **blocca la sovra-concentrazione** su singole altcoin (tetto configurabile), alloca il budget tra core e miglior alt
+- **Postura adattiva**: base conservativa con tilt automatico verso balanced solo quando i dati lo giustificano (alt ad alta convinzione o altseason oggettiva)
+- **Vendita disciplinata**: solo presa-profitto su winner maturi (P&L ≥ +40% e RSI ≥ 65) — mai vendere in perdita
+- **Livelli operativi**: ogni acquisto esce con stop-loss e target concreti calcolati da ATR
 - **Watchlist**: analisi tecnica su asset non in portafoglio — segnala solo opportunità di acquisto (mai vendita)
-- **Coerenza garantita**: locale e Telegram usano la stessa funzione AI — la raccomandazione è identica su entrambi i canali
+- **Coerenza garantita**: locale e Telegram usano la stessa funzione — la raccomandazione è identica su entrambi i canali
 - Bot Telegram con long polling — risponde a `/analisi 100` o linguaggio naturale
-- Report giornaliero automatico ogni mattina via GitHub Actions (costo ~€0/mese su repo pubblica), con **budget default €30/giorno** — così l'analisi delle 09:00 può proporre anche acquisti (i lanci manuali restano a budget scelto dall'utente)
+- Report giornaliero automatico ogni mattina via GitHub Actions (costo ~€0/mese su repo pubblica), con **budget default €30/giorno**
 
 ## Struttura
 
 ```
 crypto_assistant/
 ├── src/
-│   ├── advisor.js           # orchestratore: analizza portafoglio + watchlist
-│   ├── indicators.js        # RSI, MACD, SMA, Bollinger
+│   ├── advisor.js           # orchestratore: analisi multi-timeframe + scoring regime-aware
+│   ├── indicators.js        # RSI, MACD, SMA, Bollinger, ADX/DMI, StochRSI, ATR, divergenze, forza rel.
 │   ├── portfolioAnalyzer.js # prezzi live, P&L, allocazione
-│   ├── aiAdvisor.js         # prompt Claude: segnali deterministici + ragionamento contestuale
+│   ├── aiAdvisor.js         # decisione strategica deterministica + nota di contesto validata
 │   ├── marketData.js        # prezzi live (Crypto.com + CoinGecko fallback)
-│   ├── historicalData.js    # candele storiche 200gg (Crypto.com + CoinGecko fallback)
+│   ├── historicalData.js    # candele multi-timeframe 1D/7D/4h (Crypto.com + CoinGecko fallback)
 │   ├── sentiment.js         # Fear & Greed Index (alternative.me)
 │   ├── globalMetrics.js     # market cap, BTC dominance, altcoin season (CoinGecko)
-│   └── newsSentiment.js     # stub (futuro: news sentiment)
-├── local-advisor.js         # CLI locale — stampa dati + raccomandazione AI identica a Telegram
+│   └── newsSentiment.js     # community sentiment (CoinGecko)
+├── local-advisor.js         # CLI locale — stampa dati + raccomandazione identica a Telegram
 ├── telegram-bot.js          # bot Telegram (long polling, PM2)
 ├── telegram-report.js       # report automatico GHA
 ├── data/portfolio.json      # quantità asset detenuti
 ├── data/watchlist.json      # asset non in portafoglio da monitorare
+├── data/strategy.json       # postura di rischio: pesi target, tetti, ripartizione budget, tilt adattivo
 └── .github/workflows/
     ├── daily-report.yml     # report mattutino 09:00 IT (budget default €30)
     └── telegram-bot.yml     # bot attivo 20h/giorno in 4 finestre da 5h
@@ -143,27 +147,47 @@ Per attivarlo, aggiungi i seguenti **Secrets** nel repository GitHub (`Settings 
 
 ## Logica dei segnali
 
-I segnali sono calcolati deterministicamente in codice, non dall'AI:
+La decisione è **calcolata al 100% in codice**, non dall'AI. Il flusso è: *analisi ampia → score tattico regime-aware → fit strategico di portafoglio → allocazione del budget*.
 
-| Sezione | BUY (portafoglio) | SELL (portafoglio) | NUOVA POSIZIONE (watchlist) |
-|---------|-------------------|--------------------|----------------------------|
-| 🔵 Basso rischio | score ≥ +30 AND RSI < 38 | score ≤ -30 AND RSI > 62 | score ≥ +30 AND RSI < 38 |
-| 🟠 Medio-basso | score ≥ +20 AND RSI < 42 | score ≤ -20 AND RSI > 58 | score ≥ +20 AND RSI < 42 |
+### 1. Score tattico (composizione)
 
-**Ragionamento contestuale:** se il Fear & Greed Index è sotto 25 (Extreme Fear) e c'è budget disponibile, l'AI può raccomandare un DCA difensivo su BTC o ETH anche in assenza di segnali tecnici formali — è il contesto macro a giustificarlo.
+Lo score somma 13 fattori. L'**RSI è regime-aware**: in un trend rialzista forte (ADX ≥ 25, +DI > -DI) l'RSI alto non è penalizzato come vendita ma letto come forza; in un trend ribassista l'RSI basso non è un segnale d'acquisto (non si compra "il coltello che cade"); in mercato laterale vale la mean-reversion classica.
 
-**Composizione dello score:**
-
-| Indicatore | Range punti |
-|------------|-------------|
-| RSI(14) | -30 / +30 |
+| Fattore | Range punti |
+|---------|-------------|
+| RSI(14) regime-aware | -30 / +25 |
 | Trend SMA50/200 | -25 / +25 |
 | MACD | -20 / +20 |
 | Bande di Bollinger | -15 / +15 |
+| Divergenza prezzo/RSI | -12 / +12 |
 | Volume + OBV | -10 / +10 |
+| Fear & Greed Index | -10 / +10 |
+| StochRSI | -8 / +8 |
+| Forza relativa vs BTC (30gg) | -8 / +8 |
 | Support/Resistance | -8 / +8 |
-| Fear & Greed Index | -7 / +7 |
+| Multi-timeframe (settimanale/giornaliero/4h) | -8 / +8 |
+| ADX/DMI (conferma trend) | -5 / +5 |
 | Community Sentiment (CoinGecko) | -5 / +5 |
+
+### 2. Fit strategico di portafoglio
+
+Lo score tattico viene moltiplicato per un **fit strategico** che riflette la costruzione del portafoglio (parametri in `data/strategy.json`):
+
+- **Core (BTC/ETH)**: boost se sotto-pesato rispetto al target, taglio se sopra-pesato.
+- **Altcoin**: acquisto **bloccato** se la posizione supera il tetto per singolo asset (anti sovra-concentrazione); altrimenti fit proporzionale allo spazio residuo + momentum (forza relativa vs BTC).
+- `priorità = score tattico × fit strategico`.
+
+### 3. Allocazione del budget e decisione
+
+Il budget del giorno viene indirizzato sulla priorità più alta (o splittato tra core e miglior alt secondo la postura). Core → 🔵 basso rischio, altcoin → 🟠 medio-basso. Ogni riga riporta importo in €, motivo strategico e stop/target da ATR.
+
+- **Vendita**: solo presa-profitto disciplinata (P&L ≥ +40% **e** RSI ≥ 65). Mai in perdita. Asset `NO_SELL` (CRO/LINK/UNI) esclusi.
+- **DCA difensivo**: in Extreme Fear (Fear & Greed < 25) garantisce almeno una gamba sul core più sotto-pesato.
+- **Postura adattiva**: base conservativa (`data/strategy.json`), con tilt verso balanced (tetto alt e quota core del budget più larghi) **solo** se un'altcoin è ad alta convinzione (score ≥ 40 e forza relativa ≥ +20% vs BTC) o se c'è altseason oggettiva (Altcoin Season Index ≥ 60). L'intestazione del messaggio mostra sempre la modalità attiva.
+
+### Ruolo dell'AI (nessuna allucinazione possibile)
+
+L'AI (Claude) **non decide**: le due sezioni operative sono generate dal codice e inviate verbatim. L'AI produce solo una breve nota di contesto, che viene **scartata automaticamente se contiene azioni (COMPRA/VENDI), importi in € o percentuali**.
 
 ## Affidabilità e limiti
 

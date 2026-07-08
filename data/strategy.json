@@ -1,0 +1,16 @@
+{
+  "posture": "conservative-adaptive",
+  "note": "Base conservativa con tilt verso balanced SOLO quando i dati lo giustificano (regola deterministica, non discrezionale). Il tilt allenta tetto alt e quota core del budget quando c'e un'alt ad alta convinzione o altseason. Modificabile a mano.",
+  "coreSymbols": ["BTC", "ETH"],
+  "targets": { "BTC": 0.35, "ETH": 0.30 },
+  "altMaxWeight": 0.12,
+  "coreBudgetShare": 0.7,
+  "adaptive": {
+    "enabled": true,
+    "altConvictionScore": 40,
+    "altConvictionOutperf": 20,
+    "altSeasonIndex": 60,
+    "tiltCoreBudgetShare": 0.5,
+    "tiltAltMaxWeight": 0.15
+  }
+}

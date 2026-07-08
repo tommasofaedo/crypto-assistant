@@ -6,6 +6,30 @@ Miglioramenti pianificati, in ordine di priorità.
 
 ## ✅ Completati
 
+### Motore regime-aware + layer strategico di portafoglio (08/07/2026)
+Revisione maggiore del motore, in due parti.
+
+**Analisi più ampia (da 8 a 13 fattori, 3 timeframe):** nuovi indicatori in `indicators.js` —
+`calcADX`/DMI (regime), `calcATR` (stop/target), `calcStochRSI` (timing), `detectDivergence`
+(prezzo/RSI), `calcRelativeStrength` (vs BTC). `historicalData.js` ora recupera candele
+settimanali/giornaliere/4h (`getMultiTimeframeCandles`). Lo scoring in `advisor.js` è
+**regime-aware**: l'RSI è interpretato secondo il regime (trend forte vs laterale), risolvendo
+la penalizzazione impropria dell'RSI alto in uptrend. Pesi di ADX/MTF ridotti per evitare il
+triplo conteggio della direzione del trend.
+
+**Decisione oggettiva + strategia (`aiAdvisor.js`, `data/strategy.json`):** `computeStrategicPlan()`
+sostituisce `computeEligibleActions`. Lo score tattico è moltiplicato per un **fit strategico**
+di portafoglio (qualità sotto-pesata favorita, sovra-concentrazione su singola alt bloccata da
+un tetto configurabile) e il budget del giorno è **allocato** tra core e miglior alt secondo la
+postura. Postura **conservative-adaptive**: base conservativa con tilt verso balanced
+deterministico (alt ad alta convinzione o altseason). Vendita = solo presa-profitto (P&L ≥ +40%
+& RSI ≥ 65). L'AI non decide più: le sezioni operative sono generate in codice e inviate verbatim;
+la nota di contesto è validata e scartata se contiene azioni/importi (fix del bug di allucinazione
+"COMPRA SOL score +22" del 07/08).
+
+**Nota:** l'idea "Correlazione BTC" tra le idee future è ora parzialmente coperta dalla forza
+relativa vs BTC integrata nello score.
+
 ### Retry su Crypto.com (03/07/2026)
 Le chiamate a Crypto.com ticker e candlestick usavano `axios.get()` diretto senza retry.
 Un 520/502 transitorio crashava l'intera analisi. Aggiunta funzione `cdcGet` con backoff

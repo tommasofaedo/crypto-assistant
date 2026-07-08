@@ -18,8 +18,10 @@ function calcEMA(values, period) {
   return result;
 }
 
-function calcRSI(closes, period = 14) {
-  if (closes.length < period + 1) return null;
+// Serie RSI completa (allineata a closes, null durante il warmup) — base per StochRSI e divergenze
+function calcRSISeries(closes, period = 14) {
+  const out = new Array(closes.length).fill(null);
+  if (closes.length < period + 1) return out;
   let avgGain = 0, avgLoss = 0;
   for (let i = 1; i <= period; i++) {
     const delta = closes[i] - closes[i - 1];
@@ -28,13 +30,119 @@ function calcRSI(closes, period = 14) {
   }
   avgGain /= period;
   avgLoss /= period;
+  out[period] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
   for (let i = period + 1; i < closes.length; i++) {
     const delta = closes[i] - closes[i - 1];
     avgGain = (avgGain * (period - 1) + Math.max(delta, 0)) / period;
     avgLoss = (avgLoss * (period - 1) + Math.max(-delta, 0)) / period;
+    out[i] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
   }
-  if (avgLoss === 0) return 100;
-  return 100 - 100 / (1 + avgGain / avgLoss);
+  return out;
+}
+
+function calcRSI(closes, period = 14) {
+  if (closes.length < period + 1) return null;
+  return calcRSISeries(closes, period).at(-1);
+}
+
+// ATR (Average True Range, smoothing di Wilder) — volatilità assoluta per stop/target
+function calcATR(candles, period = 14) {
+  if (candles.length < period + 1) return null;
+  const tr = [];
+  for (let i = 1; i < candles.length; i++) {
+    const h = candles[i].high, l = candles[i].low, pc = candles[i - 1].close;
+    tr.push(Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc)));
+  }
+  let atr = tr.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  for (let i = period; i < tr.length; i++) {
+    atr = (atr * (period - 1) + tr[i]) / period;
+  }
+  return atr;
+}
+
+// ADX + DMI (Wilder) — forza del trend (adx) e direzione (+DI vs -DI). Chiave per il regime.
+function calcADX(candles, period = 14) {
+  if (candles.length < period * 2 + 1) return null;
+  const plusDM = [], minusDM = [], tr = [];
+  for (let i = 1; i < candles.length; i++) {
+    const up = candles[i].high - candles[i - 1].high;
+    const down = candles[i - 1].low - candles[i].low;
+    plusDM.push(up > down && up > 0 ? up : 0);
+    minusDM.push(down > up && down > 0 ? down : 0);
+    const h = candles[i].high, l = candles[i].low, pc = candles[i - 1].close;
+    tr.push(Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc)));
+  }
+  // Somma smussata di Wilder
+  const smooth = (arr) => {
+    let s = arr.slice(0, period).reduce((a, b) => a + b, 0);
+    const res = [s];
+    for (let i = period; i < arr.length; i++) { s = s - s / period + arr[i]; res.push(s); }
+    return res;
+  };
+  const trS = smooth(tr), pS = smooth(plusDM), mS = smooth(minusDM);
+  const dx = [];
+  for (let i = 0; i < trS.length; i++) {
+    if (trS[i] === 0) { dx.push(0); continue; }
+    const plusDI = 100 * pS[i] / trS[i];
+    const minusDI = 100 * mS[i] / trS[i];
+    const sum = plusDI + minusDI;
+    dx.push(sum === 0 ? 0 : 100 * Math.abs(plusDI - minusDI) / sum);
+  }
+  if (dx.length < period) return null;
+  let adx = dx.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  for (let i = period; i < dx.length; i++) { adx = (adx * (period - 1) + dx[i]) / period; }
+  return {
+    adx,
+    plusDI: trS.at(-1) ? 100 * pS.at(-1) / trS.at(-1) : 0,
+    minusDI: trS.at(-1) ? 100 * mS.at(-1) / trS.at(-1) : 0,
+  };
+}
+
+// Stochastic RSI — timing di ingresso/uscita più reattivo dell'RSI grezzo. Ritorna %K e %D (0–100).
+function calcStochRSI(closes, rsiPeriod = 14, stochPeriod = 14, smoothK = 3, smoothD = 3) {
+  const rsi = calcRSISeries(closes, rsiPeriod).filter(v => v !== null);
+  if (rsi.length < stochPeriod + smoothK + smoothD) return null;
+  const stoch = [];
+  for (let i = stochPeriod - 1; i < rsi.length; i++) {
+    const window = rsi.slice(i - stochPeriod + 1, i + 1);
+    const lo = Math.min(...window), hi = Math.max(...window);
+    stoch.push(hi === lo ? 0 : (rsi[i] - lo) / (hi - lo) * 100);
+  }
+  const kSeries = calcSMA(stoch, smoothK).filter(v => v !== null);
+  const dSeries = calcSMA(kSeries, smoothD).filter(v => v !== null);
+  if (!kSeries.length || !dSeries.length) return null;
+  return { k: kSeries.at(-1), d: dSeries.at(-1) };
+}
+
+// Divergenza regolare prezzo/indicatore sugli ultimi `lookback` bar (bullish/bearish/null)
+function detectDivergence(closes, indicator, lookback = 28) {
+  const n = closes.length;
+  if (n < lookback || indicator.length < n) return null;
+  const half = Math.floor(lookback / 2);
+  const p1 = closes.slice(n - lookback, n - half);
+  const p2 = closes.slice(n - half);
+  const i1 = indicator.slice(n - lookback, n - half).filter(v => v != null);
+  const i2 = indicator.slice(n - half).filter(v => v != null);
+  if (!i1.length || !i2.length) return null;
+  const priceLowerLow = Math.min(...p2) < Math.min(...p1);
+  const priceHigherHigh = Math.max(...p2) > Math.max(...p1);
+  const indHigherLow = Math.min(...i2) > Math.min(...i1);
+  const indLowerHigh = Math.max(...i2) < Math.max(...i1);
+  if (priceLowerLow && indHigherLow) return 'bullish';   // prezzo scende ma momentum sale
+  if (priceHigherHigh && indLowerHigh) return 'bearish';  // prezzo sale ma momentum cala
+  return null;
+}
+
+// Forza relativa vs BTC su `period` bar — un asset che batte BTC è un leader, chi perde è un laggard
+function calcRelativeStrength(assetCloses, btcCloses, period = 30) {
+  if (!btcCloses || assetCloses.length < period + 1 || btcCloses.length < period + 1) return null;
+  const aRet = assetCloses.at(-1) / assetCloses.at(-1 - period) - 1;
+  const bRet = btcCloses.at(-1) / btcCloses.at(-1 - period) - 1;
+  return {
+    assetReturnPct: aRet * 100,
+    btcReturnPct: bRet * 100,
+    outperformancePct: (aRet - bRet) * 100,
+  };
 }
 
 function calcMACD(closes, fast = 12, slow = 26, signalPeriod = 9) {
@@ -148,6 +256,7 @@ function scoreSupportResistance(price, sr) {
 }
 
 module.exports = {
-  calcRSI, calcSMA, calcEMA, calcMACD, calcBollingerBands,
+  calcRSI, calcRSISeries, calcSMA, calcEMA, calcMACD, calcBollingerBands,
   calcVolumeScore, calcSupportResistance, scoreSupportResistance,
+  calcATR, calcADX, calcStochRSI, detectDivergence, calcRelativeStrength,
 };

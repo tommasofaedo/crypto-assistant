@@ -23,12 +23,12 @@ async function cdcGet(url, params, retries = 3) {
   }
 }
 
-async function getCryptoComCandles(symbol) {
+async function getCryptoComCandles(symbol, timeframe = '1D', count = 200) {
   const instrument = CRYPTOCOM_INSTRUMENTS[symbol];
   if (!instrument) throw new Error(`Strumento Crypto.com non trovato per ${symbol}`);
 
   const r = await cdcGet(`${CRYPTOCOM_V2}/get-candlestick`, {
-    instrument_name: instrument, timeframe: '1D', count: 200,
+    instrument_name: instrument, timeframe, count,
   });
 
   const candles = r.data?.result?.data;
@@ -65,15 +65,20 @@ async function cgGet(path, params, retries = 4) {
   }
 }
 
-async function getCandles(symbol) {
+// timeframe: '1D' (default), '7D' (settimanale), '4h' (intraday). Il fallback CoinGecko copre solo il giornaliero.
+async function getCandles(symbol, timeframe = '1D', count = 200) {
   // Primary: Crypto.com Exchange (no rate limits)
   try {
-    return await getCryptoComCandles(symbol);
+    return await getCryptoComCandles(symbol, timeframe, count);
   } catch (err) {
-    console.log(`[Crypto.com candles] ${symbol}: ${err.message}, uso CoinGecko...`);
+    console.log(`[Crypto.com candles] ${symbol} ${timeframe}: ${err.message}, uso CoinGecko...`);
   }
 
-  // Fallback: CoinGecko
+  // Fallback: CoinGecko — solo giornaliero, altri timeframe non disponibili
+  if (timeframe !== '1D') {
+    console.log(`[candles] ${symbol}: timeframe ${timeframe} non disponibile su fallback CoinGecko`);
+    return null;
+  }
   const coinId = COINGECKO_IDS[symbol];
   if (!coinId) throw new Error(`Nessuna fonte configurata per ${symbol}`);
 
@@ -84,4 +89,15 @@ async function getCandles(symbol) {
   }));
 }
 
-module.exports = { getCandles };
+// Recupera i timeframe rilevanti in un colpo solo (giornaliero + settimanale + 4h).
+// Solo il giornaliero è obbligatorio; gli altri degradano a null senza far fallire l'analisi.
+async function getMultiTimeframeCandles(symbol) {
+  const daily = await getCandles(symbol, '1D', 200);
+  const [weekly, fourH] = await Promise.all([
+    getCandles(symbol, '7D', 120).catch(() => null),
+    getCandles(symbol, '4h', 200).catch(() => null),
+  ]);
+  return { daily, weekly, fourH };
+}
+
+module.exports = { getCandles, getMultiTimeframeCandles };

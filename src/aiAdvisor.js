@@ -1,4 +1,6 @@
 require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -182,84 +184,255 @@ async function getAIAdvice(portfolio, fearGreed, analyses, budgetEur, globalMetr
 // Asset con vincolo di non-vendita (strategici, non di trading)
 const NO_SELL = new Set(['CRO', 'LINK', 'UNI']);
 
-// Calcola in codice quali azioni superano le soglie — nessuna delega all'AI
-function computeEligibleActions(analyses, portfolio, budgetEur, watchlistAnalyses = []) {
-  const blue = [], orange = [];
-
-  for (const a of analyses) {
-    const h = portfolio.holdings.find(h => h.symbol === a.symbol);
-    if (!h) continue;
-    const sellEur = Math.round(h.valueEur * 0.25);
-    const canSell = !NO_SELL.has(a.symbol);
-    const s = a.score, r = a.rsi;
-
-    if (s >= 30 && r < 38 && budgetEur > 0)
-      blue.push(`COMPRA ${a.symbol} (score +${s}, RSI ${r.toFixed(1)})`);
-    if (s <= -30 && r > 62 && canSell)
-      blue.push(`VENDI 25% ${a.symbol} ~€${sellEur} (score ${s}, RSI ${r.toFixed(1)}) — rivaluta tra 2 giorni`);
-
-    if (s >= 20 && r < 42 && budgetEur > 0)
-      orange.push(`COMPRA ${a.symbol} (score +${s}, RSI ${r.toFixed(1)})`);
-    if (s <= -20 && r > 58 && canSell)
-      orange.push(`VENDI 25% ${a.symbol} ~€${sellEur} (score ${s}, RSI ${r.toFixed(1)}) — rivaluta tra 2 giorni`);
-  }
-
-  // Watchlist: solo BUY, mai SELL
-  for (const a of watchlistAnalyses) {
-    if (!a.rsi) continue;
-    const s = a.score, r = a.rsi;
-    if (s >= 30 && r < 38 && budgetEur > 0)
-      blue.push(`NUOVA POSIZIONE ${a.symbol} (${a.name}) — score +${s}, RSI ${r.toFixed(1)}`);
-    else if (s >= 20 && r < 42 && budgetEur > 0)
-      orange.push(`NUOVA POSIZIONE ${a.symbol} (${a.name}) — score +${s}, RSI ${r.toFixed(1)}`);
-  }
-
-  return { blue, orange };
+// Etichetta sintetica del regime di mercato per la motivazione
+function regimeTag(regime) {
+  if (!regime || regime.type === 'unknown') return 'regime n/d';
+  if (regime.type === 'trending') return regime.dir === 'up' ? 'trend rialzista forte' : 'trend ribassista forte';
+  if (regime.type === 'ranging') return 'mercato laterale';
+  return 'trend in formazione';
 }
 
-const TELEGRAM_PROMPT = `Sei Marco Ferretti, consulente crypto con 12 anni di esperienza. Ricevi dati tecnici completi e devi produrre raccomandazioni operative coerenti e complete.
+// Livelli operativi (stop/target da ATR) per la riga di raccomandazione
+function levelsTag(levels) {
+  if (!levels) return '';
+  return ` | stop ${levels.stopPct.toFixed(1)}%, target +${levels.targetPct.toFixed(1)}%`;
+}
 
-I "SEGNALI TECNICI CALCOLATI" sono il tuo punto di partenza prioritario — rispettali. Ma ragiona sul contesto completo (Fear & Greed, metriche globali, watchlist) per integrare dove i segnali formali non coprono.
+// Strategia di portafoglio (pesi target, tetti, ripartizione budget). Esterna e modificabile.
+function loadStrategy() {
+  const fallback = {
+    posture: 'balanced', coreSymbols: ['BTC', 'ETH'],
+    targets: { BTC: 0.30, ETH: 0.25 }, altMaxWeight: 0.15, coreBudgetShare: 0.5,
+  };
+  try {
+    const fp = path.join(__dirname, '../data/strategy.json');
+    return { ...fallback, ...JSON.parse(fs.readFileSync(fp, 'utf-8')) };
+  } catch {
+    return fallback;
+  }
+}
 
-REGOLE:
-1. 🟢 COMPRA (anche nuove posizioni watchlist), 🔴 VENDI, ⚪ NESSUNA AZIONE
-2. Per ogni COMPRA specifica l'importo in EUR (€10–30, DCA preferito)
-3. Se Fear & Greed < 25 (Extreme Fear) e budget > 0: valuta DCA difensivo su BTC o ETH in 🟠 anche senza segnali formali — è il contesto che lo giustifica
-4. Max 3 operazioni per sezione. Motivo tecnico in max 8 parole per riga.
-5. Sezione senza operazioni → ⚪ NESSUNA AZIONE — [motivo in 5 parole]
+// Fit strategico di un acquisto [0 = da evitare .. ~1.5 = prioritario]. È qui che il giudizio
+// di portafoglio entra nel motore: privilegia la qualità sotto-pesata, blocca la sovra-concentrazione.
+function strategicFit(symbol, weight, isCore, rs, strategy) {
+  if (isCore) {
+    const target = strategy.targets[symbol] ?? 0.15;
+    const ratio = target > 0 ? weight / target : 1;         // <1 sotto-pesato, >1 sovra-pesato
+    const fit = 1 + (1 - ratio) * 0.8;                       // boost se sotto target, taglio se sopra
+    return Math.max(0.2, Math.min(1.5, fit));
+  }
+  // Altcoin: tetto duro per singolo asset — oltre il tetto, nessun nuovo acquisto.
+  const cap = strategy.altMaxWeight ?? 0.15;
+  if (weight >= cap) return 0;
+  const room = (cap - weight) / cap;                         // spazio residuo sotto il tetto (0..1)
+  const rsBoost = rs && rs.outperformancePct > 0 ? Math.min(0.4, rs.outperformancePct / 50) : 0; // momentum
+  return Math.max(0.1, room + rsBoost);
+}
 
-FORMATO OBBLIGATORIO — esattamente 2 sezioni, zero preamboli, zero conclusioni:
-🔵 BASSO RISCHIO
-🟢/🔴/⚪ [azione] — [motivo]
+// Ripartisce il budget del giorno tra la miglior opportunità core e la miglior alt (postura balanced).
+function allocateBudget(buys, budgetEur, strategy) {
+  if (!buys.length || budgetEur <= 0) return [];
+  const round5 = x => Math.round(x / 5) * 5;
+  const byPriority = (a, b) => b.priority - a.priority;
+  const bestCore = buys.filter(b => b.isCore).sort(byPriority)[0];
+  const bestAlt  = buys.filter(b => !b.isCore).sort(byPriority)[0];
 
-🟠 MEDIO-BASSO RISCHIO
-🟢/🔴/⚪ [azione] — [motivo]`;
+  // Con budget sufficiente e entrambi i tier disponibili: split core/alt secondo coreBudgetShare.
+  if (bestCore && bestAlt && budgetEur >= 20) {
+    let cEur = round5(budgetEur * (strategy.coreBudgetShare ?? 0.5));
+    cEur = Math.max(5, Math.min(budgetEur - 5, cEur));
+    return [{ ...bestCore, eur: cEur }, { ...bestAlt, eur: budgetEur - cEur }];
+  }
+  // Budget piccolo o un solo tier: tutto sulla singola migliore priorità assoluta.
+  const best = [...buys].sort(byPriority)[0];
+  return [{ ...best, eur: budgetEur }];
+}
+
+// Decide se attivare il "tilt verso balanced" — regola DETERMINISTICA, non discrezionale.
+// Scatta solo con un'alt ad alta convinzione (score+forza relativa) o altseason oggettiva.
+function resolveAdaptiveMode(strategy, analyses, watchlistAnalyses, globalMetrics, coreSet) {
+  let coreBudgetShare = strategy.coreBudgetShare;
+  let altMaxWeight = strategy.altMaxWeight;
+  const mode = { posture: strategy.posture, tilt: false, reason: null };
+
+  const adj = strategy.adaptive;
+  if (adj?.enabled) {
+    const strongAlt = [...analyses, ...watchlistAnalyses].find(a => {
+      if (coreSet.has(a.symbol)) return false;
+      const outp = a.relativeStrength ? a.relativeStrength.outperformancePct : 0;
+      const up = a.regime && a.regime.dir === 'up';
+      return up && a.score >= adj.altConvictionScore && outp >= adj.altConvictionOutperf;
+    });
+    const seasonIdx = globalMetrics?.altcoinSeasonIndex;
+    const altSeason = seasonIdx != null && seasonIdx >= adj.altSeasonIndex;
+
+    if (strongAlt || altSeason) {
+      coreBudgetShare = adj.tiltCoreBudgetShare ?? coreBudgetShare;
+      altMaxWeight = adj.tiltAltMaxWeight ?? altMaxWeight;
+      mode.tilt = true;
+      mode.reason = strongAlt
+        ? `alt ad alta convinzione: ${strongAlt.symbol} score +${strongAlt.score}`
+        : `altseason index ${seasonIdx}`;
+    }
+  }
+  return { effStrategy: { ...strategy, coreBudgetShare, altMaxWeight }, mode };
+}
+
+// Piano operativo completo: unisce score tattico e fit strategico, alloca il budget, gestisce le vendite.
+// Core (BTC/ETH) → basso rischio (🔵); altcoin → medio-basso (🟠).
+function computeStrategicPlan(analyses, portfolio, budgetEur, fearGreed, watchlistAnalyses = [], globalMetrics = null) {
+  const baseStrategy = loadStrategy();
+  const total = portfolio.totalValueEur || 1;
+  const coreSet = new Set(baseStrategy.coreSymbols);
+  const { effStrategy: strategy, mode } = resolveAdaptiveMode(baseStrategy, analyses, watchlistAnalyses, globalMetrics, coreSet);
+
+  // 1) Candidati all'acquisto: score sopra soglia, RSI non in blow-off, fit strategico > 0
+  const buys = [];
+  for (const a of [...analyses, ...watchlistAnalyses]) {
+    const s = a.score, r = a.rsi ?? 50;
+    if (!(budgetEur > 0 && s >= 22 && r < 80)) continue;
+    const h = portfolio.holdings.find(x => x.symbol === a.symbol);
+    const weight = h ? h.valueEur / total : 0;
+    const isCore = coreSet.has(a.symbol);
+    const fit = strategicFit(a.symbol, weight, isCore, a.relativeStrength, strategy);
+    if (fit <= 0) continue; // bloccato dal tetto di concentrazione
+    buys.push({
+      symbol: a.symbol, name: a.name, isCore, inPortfolio: !!h,
+      score: s, rsi: r, weight, fit, priority: s * fit,
+      regime: a.regime, levels: a.levels,
+      outperf: a.relativeStrength ? a.relativeStrength.outperformancePct : null,
+    });
+  }
+
+  // 2) DCA difensivo in Extreme Fear: garantisce almeno una gamba core anche senza segnale forte
+  if (budgetEur > 0 && fearGreed?.value != null && fearGreed.value < 25) {
+    const hasCore = buys.some(b => b.isCore);
+    if (!hasCore) {
+      // scegli il core più sotto-pesato come DCA difensivo
+      let pick = null;
+      for (const sym of strategy.coreSymbols) {
+        const h = portfolio.holdings.find(x => x.symbol === sym);
+        const a = analyses.find(x => x.symbol === sym);
+        const weight = h ? h.valueEur / total : 0;
+        const fit = strategicFit(sym, weight, true, a?.relativeStrength, strategy);
+        if (!pick || fit > pick.fit) pick = { symbol: sym, name: a?.name ?? sym, isCore: true, inPortfolio: !!h, score: a?.score ?? 0, rsi: a?.rsi ?? 50, weight, fit, priority: fit * 10, regime: a?.regime, levels: a?.levels, defensive: true };
+      }
+      if (pick) buys.push(pick);
+    }
+  }
+
+  const allocations = allocateBudget(buys, budgetEur, strategy);
+
+  // 3) Vendite = solo presa-profitto disciplinata (mandato): mai in perdita, winner maturo a RSI alto
+  const sells = [];
+  for (const a of analyses) {
+    const h = portfolio.holdings.find(x => x.symbol === a.symbol);
+    if (!h || NO_SELL.has(a.symbol)) continue;
+    const pnl = h.pnlPct ?? null;
+    const r = a.rsi ?? 50;
+    if (pnl != null && pnl >= 40 && r >= 65) {
+      sells.push({ symbol: a.symbol, eur: Math.round(h.valueEur * 0.25), pnl, rsi: r, regime: a.regime, strong: a.score <= -20 });
+    }
+  }
+
+  return { allocations, sells, strategy, mode };
+}
+
+// Valida il commento dell'LLM: NON può contenere azioni operative né importi.
+// Se sgarra, viene scartato — la decisione resta quella deterministica.
+function sanitizeCommentary(text) {
+  if (!text) return null;
+  const clean = text.trim();
+  const vietato = /\b(COMPRA|VENDI|BUY|SELL|ACQUIST|VEND)/i.test(clean) || /€\s*\d/.test(clean) || /\d+\s*%/.test(clean);
+  if (vietato) return null;
+  if (clean.length > 400) return clean.slice(0, 400);
+  return clean;
+}
+
+// L'LLM NON decide più: riceve la decisione già presa e scrive solo 1-2 frasi di contesto.
+// Gli è vietato nominare azioni operative, ticker con verbi, importi o percentuali.
+const TELEGRAM_PROMPT = `Sei Marco Ferretti, consulente crypto con 12 anni di esperienza.
+La decisione operativa è GIÀ STATA PRESA dal motore quantitativo e ti viene fornita: NON puoi modificarla, aggiungere operazioni, togliere operazioni o inventare asset.
+
+Il tuo unico compito: scrivere UNA nota di contesto di 1-2 frasi (max 40 parole) che inquadri il momento di mercato (Fear & Greed, regime, forza del trend). È un commento, NON una raccomandazione.
+
+DIVIETI ASSOLUTI:
+- Nessuna parola COMPRA/VENDI/BUY/SELL
+- Nessun importo in € e nessuna percentuale
+- Nessun nuovo ticker oltre a quelli presenti nei dati
+
+Scrivi solo la nota, niente titoli né elenchi.`;
+
+// Motivazione strategica di una singola allocazione
+function allocReason(b, strategy) {
+  if (b.defensive) return `DCA difensivo core, sotto-pesato (${(b.weight * 100).toFixed(0)}%)`;
+  const parts = [`score +${b.score}`];
+  if (b.isCore) {
+    const target = strategy.targets[b.symbol];
+    if (target != null) parts.push(b.weight < target
+      ? `sotto-pesato ${(b.weight * 100).toFixed(0)}%→target ${(target * 100).toFixed(0)}%`
+      : `core a target`);
+  } else {
+    if (b.outperf != null && b.outperf > 0) parts.push(`+${b.outperf.toFixed(0)}% vs BTC`);
+    parts.push(`alloc ${(b.weight * 100).toFixed(0)}%/tetto ${(strategy.altMaxWeight * 100).toFixed(0)}%`);
+  }
+  parts.push(regimeTag(b.regime));
+  return parts.join(', ') + levelsTag(b.levels);
+}
+
+// Rende il piano operativo in modo deterministico (mai dall'LLM). Core → 🔵, altcoin → 🟠.
+function renderPlan(plan) {
+  const { allocations, sells, strategy, mode } = plan;
+  const modeLine = mode?.tilt
+    ? `⚙️ Conservativo · tilt balanced ATTIVO — ${mode.reason}\n\n`
+    : '⚙️ Conservativo\n\n';
+  const coreBuys = allocations.filter(a => a.isCore);
+  const altBuys  = allocations.filter(a => !a.isCore);
+
+  const blueLines = [];
+  for (const b of coreBuys) blueLines.push(`🟢 COMPRA €${b.eur} ${b.symbol} — ${allocReason(b, strategy)}`);
+  for (const s of sells.filter(s => s.strong))
+    blueLines.push(`🔴 VENDI 25% ${s.symbol} ~€${s.eur} — presa-profitto +${s.pnl.toFixed(0)}%, RSI ${s.rsi.toFixed(0)}`);
+
+  const orangeLines = [];
+  for (const b of altBuys) {
+    const tag = b.inPortfolio ? 'COMPRA' : 'NUOVA POSIZIONE';
+    orangeLines.push(`🟢 ${tag} €${b.eur} ${b.symbol} — ${allocReason(b, strategy)}`);
+  }
+  for (const s of sells.filter(s => !s.strong))
+    orangeLines.push(`🔴 VENDI 25% ${s.symbol} ~€${s.eur} — presa-profitto +${s.pnl.toFixed(0)}%, RSI ${s.rsi.toFixed(0)}`);
+
+  const fmt = (arr, empty) => arr.length ? arr.join('\n') : `⚪ NESSUNA AZIONE — ${empty}`;
+  return `${modeLine}🔵 BASSO RISCHIO (core BTC/ETH)\n${fmt(blueLines, 'core non sotto-pesato o budget assente')}\n\n` +
+         `🟠 MEDIO-BASSO RISCHIO (altcoin)\n${fmt(orangeLines, 'nessuna alt sopra soglia entro il tetto')}`;
+}
 
 async function getTelegramAdvice(portfolio, fearGreed, analyses, budgetEur, globalMetrics, watchlistAnalyses = []) {
-  const eligible = computeEligibleActions(analyses, portfolio, budgetEur, watchlistAnalyses);
+  const plan = computeStrategicPlan(analyses, portfolio, budgetEur, fearGreed, watchlistAnalyses, globalMetrics);
+  const sections = renderPlan(plan);
 
-  const fmtActions = (arr) => arr.length
-    ? arr.map(a => `• ${a}`).join('\n')
-    : 'NESSUNA AZIONE';
+  // Nota di contesto dall'LLM — validata prima dell'uso. Se non passa, si usa un fallback deterministico.
+  let commentary = null;
+  try {
+    const userMessage = buildAnalysisMessage(portfolio, fearGreed, analyses, budgetEur, globalMetrics, watchlistAnalyses)
+      + `\n\n## DECISIONE OPERATIVA GIÀ PRESA (non modificabile)\n${sections}`;
+    const response = await client.messages.create({
+      model: 'claude-opus-4-8',
+      max_tokens: 200,
+      system: TELEGRAM_PROMPT,
+      messages: [{ role: 'user', content: userMessage }],
+    });
+    const raw = response.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    commentary = sanitizeCommentary(raw);
+  } catch (err) {
+    commentary = null;
+  }
 
-  const actionsBlock = `\n## SEGNALI TECNICI CALCOLATI (input prioritario — integra col contesto)\n` +
-    `🔵 BASSO RISCHIO:\n${fmtActions(eligible.blue)}\n\n` +
-    `🟠 MEDIO-BASSO RISCHIO:\n${fmtActions(eligible.orange)}`;
+  if (!commentary) {
+    commentary = `Fear & Greed ${fearGreed.value}/100 (${fearGreed.label}).`;
+  }
 
-  const userMessage = buildAnalysisMessage(portfolio, fearGreed, analyses, budgetEur, globalMetrics, watchlistAnalyses)
-    + actionsBlock;
-
-  const response = await client.messages.create({
-    model: 'claude-opus-4-8',
-    max_tokens: 800,
-    system: TELEGRAM_PROMPT,
-    messages: [{ role: 'user', content: userMessage }],
-  });
-
-  return response.content
-    .filter(b => b.type === 'text')
-    .map(b => b.text)
-    .join('');
+  return `${sections}\n\n💬 ${commentary}`;
 }
 
-module.exports = { getAIAdvice, getTelegramAdvice };
+module.exports = { getAIAdvice, getTelegramAdvice, computeStrategicPlan, renderPlan };

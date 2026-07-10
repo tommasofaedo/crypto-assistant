@@ -1,22 +1,22 @@
 {
-  "updatedAt": "2026-07-06",
+  "updatedAt": "2026-07-10",
   "currency": "EUR",
   "holdings": [
     {
       "symbol": "ETH",
       "name": "Ethereum",
-      "quantity": 0.79185323,
+      "quantity": 0.79201303,
       "avgBuyPrice": 1660,
       "valueAtSnapshot": 1004.23,
-      "notes": "16 acquisti diretti €1250 + basket €18.75 = €1268.81 totali. +€25 acquisto 04/07 (0.015854 ETH) + €25 acquisto 06/07 mattina (0.015733 ETH @ ~€1589) + €15 acquisto 06/07 pomeriggio (0.009597 ETH @ ~€1563). Premi staking 06/07: +0.00016255 ETH (DPoS+DefiLending). Parte ETH in staking DPoS. Avg effettivo su holding attuale."
+      "notes": "16 acquisti diretti €1250 + basket €18.75 = €1268.81 totali. +€25 acquisto 04/07 (0.015854 ETH) + €25 acquisto 06/07 mattina (0.015733 ETH @ ~€1589) + €15 acquisto 06/07 pomeriggio (0.009597 ETH @ ~€1563). Premi staking 06/07: +0.00016255 ETH (DPoS+DefiLending). Premi staking 10/07: +0.0001598 ETH (DPoS 0.0001596 + DefiLending 0.0000002). Parte ETH in staking DPoS. Avg effettivo su holding attuale."
     },
     {
       "symbol": "SOL",
       "name": "Solana",
-      "quantity": 11.88487683,
+      "quantity": 11.88755099,
       "avgBuyPrice": 143,
       "valueAtSnapshot": 730.49,
-      "notes": "8 acquisti diretti + basket = €1696 totali. ~10.9 SOL in staking DPoS. ~1.2 SOL da premi compound. Premio DPoS 06/07: +0.00268683 SOL. Avg effettivo su holding attuale."
+      "notes": "8 acquisti diretti + basket = €1696 totali. ~10.9 SOL in staking DPoS. ~1.2 SOL da premi compound. Premio DPoS 06/07: +0.00268683 SOL. Premio DPoS 10/07: +0.00267416 SOL. Avg effettivo su holding attuale."
     },
     {
       "symbol": "BTC",
@@ -37,18 +37,18 @@
     {
       "symbol": "AAVE",
       "name": "Aave",
-      "quantity": 3.5786,
-      "avgBuyPrice": 146,
+      "quantity": 3.92935,
+      "avgBuyPrice": 140.6,
       "valueAtSnapshot": 290.85,
-      "notes": "3 acquisti viban + 1 basket 2024 + acquisto recente 2026-06-29 (non in CSV). Totale stimato ~€523. Avg approssimativo per 0.09 AAVE non tracciati."
+      "notes": "3 acquisti viban + 1 basket 2024 + acquisto recente 2026-06-29 (non in CSV). Acquisto 10/07: +€30 (0.35075 AAVE @ ~€85.53). Totale stimato ~€553. Avg effettivo su holding attuale."
     },
     {
       "symbol": "CRO",
       "name": "Cronos",
-      "quantity": 332.92342664,
+      "quantity": 332.9562892,
       "avgBuyPrice": 0.37,
       "valueAtSnapshot": 16.04,
-      "notes": "€121.74 acquistati (5 ops, avg €0.11/CRO). Resto da cashback carta e premi DPoS (essenzialmente gratis). Premio DPoS 06/07: +0.04988664 CRO. Avg effettivo su holding totale. Asset NO_SELL."
+      "notes": "€121.74 acquistati (5 ops, avg €0.11/CRO). Resto da cashback carta e premi DPoS (essenzialmente gratis). Premio DPoS 06/07: +0.04988664 CRO. Premio DPoS 10/07: +0.03286256 CRO. Avg effettivo su holding totale. Asset NO_SELL."
     },
     {
       "symbol": "LINK",

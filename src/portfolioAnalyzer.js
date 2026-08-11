@@ -28,6 +28,7 @@ async function analyzePortfolio() {
       symbol: h.symbol,
       name: h.name,
       quantity: h.quantity,
+      availableForTrading: h.availableForTrading ?? h.quantity,
       priceEur: market.priceEur,
       priceUsd: market.priceUsd,
       valueEur,

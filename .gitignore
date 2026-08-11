@@ -4,3 +4,7 @@ node_modules/
 .mcp.json
 bot.log
 bot-error.log
+# Dati finanziari privati — repo pubblica, non committare mai
+crypto_transactions.csv
+storico_cryptocom/
+status.png

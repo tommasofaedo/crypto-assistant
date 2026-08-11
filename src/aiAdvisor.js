@@ -353,7 +353,17 @@ function computeStrategicPlan(analyses, portfolio, budgetEur, fearGreed, watchli
     const pnl = h.pnlPct ?? null;
     const r = a.rsi ?? 50;
     if (pnl != null && pnl >= sellMinProfit && r >= sellMinRsi) {
-      sells.push({ symbol: a.symbol, eur: Math.round(h.valueEur * sellFraction), pct: sellPct, pnl, rsi: r, regime: a.regime, strong: a.score <= -20 });
+      // Cap al vendibile reale: non puoi vendere ciò che è in staking (availableForTrading).
+      const avail = h.availableForTrading ?? h.quantity;
+      const sellableEur = avail * h.priceEur;
+      if (sellableEur < 1) continue; // niente di liquido: tutta la posizione è bloccata
+      const desiredEur = h.valueEur * sellFraction;
+      const eur = Math.round(Math.min(desiredEur, sellableEur));
+      if (eur < 1) continue;
+      const capped = desiredEur > sellableEur + 0.5;
+      // % coerente con l'importo effettivo (dopo il cap può essere < fraction nominale)
+      const pct = capped ? Math.round((eur / h.valueEur) * 100) : sellPct;
+      sells.push({ symbol: a.symbol, eur, pct, capped, pnl, rsi: r, regime: a.regime, strong: a.score <= -20 });
     }
   }
 
@@ -415,7 +425,7 @@ function renderPlan(plan) {
   const blueLines = [];
   for (const b of coreBuys) blueLines.push(`COMPRA €${b.eur} ${b.symbol} — ${allocReason(b, strategy)}`);
   for (const s of sells.filter(s => s.strong))
-    blueLines.push(`VENDI ${s.pct}% ${s.symbol} ~€${s.eur} — presa-profitto +${s.pnl.toFixed(0)}%, RSI ${s.rsi.toFixed(0)}`);
+    blueLines.push(`VENDI ${s.pct}% ${s.symbol} ~€${s.eur} — presa-profitto +${s.pnl.toFixed(0)}%, RSI ${s.rsi.toFixed(0)}${s.capped ? ' (limitato al disponibile, resto in staking)' : ''}`);
 
   const orangeLines = [];
   for (const b of altBuys) {
@@ -423,7 +433,7 @@ function renderPlan(plan) {
     orangeLines.push(`${tag} €${b.eur} ${b.symbol} — ${allocReason(b, strategy)}`);
   }
   for (const s of sells.filter(s => !s.strong))
-    orangeLines.push(`VENDI ${s.pct}% ${s.symbol} ~€${s.eur} — presa-profitto +${s.pnl.toFixed(0)}%, RSI ${s.rsi.toFixed(0)}`);
+    orangeLines.push(`VENDI ${s.pct}% ${s.symbol} ~€${s.eur} — presa-profitto +${s.pnl.toFixed(0)}%, RSI ${s.rsi.toFixed(0)}${s.capped ? ' (limitato al disponibile, resto in staking)' : ''}`);
 
   const fmt = (arr, empty) => arr.length ? arr.join('\n') : `NESSUNA AZIONE — ${empty}`;
   let out = `${modeLine}BASSO RISCHIO (core BTC/ETH)\n${fmt(blueLines, 'nessun setup core abbastanza convincente')}\n\n` +

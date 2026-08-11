@@ -6,6 +6,20 @@ Miglioramenti pianificati, in ordine di priorità.
 
 ## ✅ Completati
 
+### Lettura saldi App live + vendite cappate al disponibile (11/08/2026)
+`wapi.crypto.com` è finalmente **online** (era 404 a luglio). Nuovo `sync-app.js`: legge il
+wallet Crypto.com **App** in sola lettura tramite la skill ufficiale `crypto-com-app`
+(`account.ts balances all`) e aggiorna `data/portfolio.json`. Modello a **due numeri** per
+holding: `quantity` (totale, staking incluso) resta **sovrano** e modificabile a mano/a voce
+(override manuale, mai abbassato in automatico — protegge lo staking, invisibile all'API
+tradabile); `availableForTrading` = quanto è davvero vendibile ora, sincronizzato live.
+`portfolioAnalyzer.js` espone il campo a valle. La **presa-profitto** in `aiAdvisor.js` è ora
+**cappata a `availableForTrading`** (niente vendite su quote in staking; % coerente con
+l'importo effettivo; salta del tutto se la posizione è interamente bloccata, es. SOL).
+Credenziali CDC App (`CDC_API_KEY`/`CDC_API_SECRET`) nel `.env` gitignored. **Sync non
+automatizzato**: si lancia a comando (le quantità cambiano di rado), mentre i prezzi/valore €
+restano letti live a ogni analisi.
+
 ### Motore regime-aware + layer strategico di portafoglio (08/07/2026)
 Revisione maggiore del motore, in due parti.
 
@@ -155,10 +169,18 @@ principale è PM2 che duplica in locale.
 
 ## 💡 Idee future (non pianificate)
 
+- **Azioni tokenizzate (VALUTATO E ACCANTONATO 11/08/2026)**: Crypto.com App le consente
+  (il campo `equity_asset_id` esiste nello schema), ma **la skill/API attuale non le espone**
+  — il catalogo `coins.ts search` restituisce solo 469 crypto (`token_type: regular`, zero
+  equity). Mancano quindi sia il prezzo sia lo storico candele → il motore non può calcolarci
+  gli indicatori. Inoltre, dal lato investimento: un'azione tokenizzata replica solo il
+  sottostante (non è un prodotto a rendimento proprio) e come **veicolo** è di norma inferiore
+  a un ETF UCITS da broker (dividendi spesso non pagati, rischio emittente/custodia, fisco/tutele).
+  **Decisione di Tommaso: lasciar perdere, restare sulle crypto.** Riconsiderare solo se emerge
+  un endpoint equities con dati prezzo+candele.
 - **On-chain data**: Glassnode o Nansen free tier per flussi whale/exchange inflow
 - **Correlazione BTC**: se BTC scende >3% in 1h, invia alert automatico su tutto il portafoglio
-- **Aggiornamento automatico portfolio.json**: quando `wapi.crypto.com` sarà operativo,
-  leggere i saldi direttamente dall'App senza aggiornamento manuale
+- ~~**Aggiornamento automatico portfolio.json**~~: ✅ fatto 11/08/2026 (`sync-app.js`) — vedi Completati
 - **Dashboard web**: interfaccia React/Next.js che mostra portfolio, segnali e storico
   in tempo reale (richiede server pubblico)
 - **Backtesting**: testare la strategia RSI+MACD+Bollinger su dati storici per validare

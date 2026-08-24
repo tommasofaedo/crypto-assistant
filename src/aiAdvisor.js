@@ -2,6 +2,7 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
+const { loadHistory } = require('./historyManager');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -212,6 +213,40 @@ function loadStrategy() {
   }
 }
 
+// Registro delle vendite REALI eseguite (data/sellState.json) → { SYMBOL: { lastSellDate } }.
+function loadSellState() {
+  try {
+    const fp = path.join(__dirname, '../data/sellState.json');
+    return JSON.parse(fs.readFileSync(fp, 'utf-8')).sells ?? {};
+  } catch {
+    return {};
+  }
+}
+
+// Anti-frammentazione della presa-profitto. Data l'ultima vendita reale di `symbol`, decide se
+// è lecito riproporne una ora. Ritorna { allow, reason }.
+//  - Cooldown: entro cooldownDays dall'ultima vendita → si aspetta (niente sminuzzamento giorno per giorno).
+//  - Re-arm: superato il cooldown, il segnale resta "disarmato" finché l'RSI non è ridisceso sotto
+//    rearmRsi in almeno uno snapshot successivo alla vendita → vende sul PROSSIMO picco, non su questo.
+function sellGate(symbol, lastSellDate, cooldownDays, rearmRsi, history, nowMs) {
+  if (!lastSellDate) return { allow: true, reason: 'mai venduto' };
+  const soldMs = Date.parse(lastSellDate);
+  if (Number.isNaN(soldMs)) return { allow: true, reason: 'data vendita non valida' };
+
+  const daysSince = (nowMs - soldMs) / 86_400_000;
+  if (daysSince < cooldownDays) {
+    return { allow: false, reason: `cooldown ${daysSince.toFixed(1)}/${cooldownDays}gg dall'ultima vendita` };
+  }
+
+  // Re-arm: cerca un RSI < rearmRsi registrato DOPO la vendita.
+  const rearmed = history.some(e =>
+    e.symbol === symbol && e.rsi != null && e.rsi < rearmRsi && Date.parse(e.date) > soldMs);
+  if (!rearmed) {
+    return { allow: false, reason: `non riarmato: RSI mai sceso sotto ${rearmRsi} dall'ultima vendita` };
+  }
+  return { allow: true, reason: 'cooldown superato e riarmato' };
+}
+
 // Fit strategico di un acquisto [0 = da evitare .. ~1.5 = prioritario]. È qui che il giudizio
 // di portafoglio entra nel motore: privilegia la qualità sotto-pesata, blocca la sovra-concentrazione.
 function strategicFit(symbol, weight, isCore, rs, strategy) {
@@ -345,7 +380,13 @@ function computeStrategicPlan(analyses, portfolio, budgetEur, fearGreed, watchli
   const sellMinProfit = sellCfg.minProfit ?? 40;
   const sellMinRsi    = sellCfg.minRsi ?? 65;
   const sellFraction  = sellCfg.fraction ?? 0.25;
+  const sellCooldown  = sellCfg.cooldownDays ?? 3;
+  const sellRearmRsi  = sellCfg.rearmRsi ?? 60;
   const sellPct = Math.round(sellFraction * 100);
+  // Anti-frammentazione: registro vendite reali + serie storica RSI per il re-arm.
+  const sellState = loadSellState();
+  const history = loadHistory();
+  const nowMs = Date.now();
   const sells = [];
   for (const a of analyses) {
     const h = portfolio.holdings.find(x => x.symbol === a.symbol);
@@ -353,6 +394,9 @@ function computeStrategicPlan(analyses, portfolio, budgetEur, fearGreed, watchli
     const pnl = h.pnlPct ?? null;
     const r = a.rsi ?? 50;
     if (pnl != null && pnl >= sellMinProfit && r >= sellMinRsi) {
+      // Cooldown + re-arm: evita di sminuzzare la posizione su vendite ravvicinate / sullo stesso picco.
+      const gate = sellGate(a.symbol, sellState[a.symbol]?.lastSellDate, sellCooldown, sellRearmRsi, history, nowMs);
+      if (!gate.allow) continue;
       // Cap al vendibile reale: non puoi vendere ciò che è in staking (availableForTrading).
       const avail = h.availableForTrading ?? h.quantity;
       const sellableEur = avail * h.priceEur;
@@ -476,4 +520,4 @@ async function getTelegramAdvice(portfolio, fearGreed, analyses, budgetEur, glob
   return `${sections}\n\nContesto: ${commentary}`;
 }
 
-module.exports = { getAIAdvice, getTelegramAdvice, computeStrategicPlan, renderPlan };
+module.exports = { getAIAdvice, getTelegramAdvice, computeStrategicPlan, renderPlan, sellGate };

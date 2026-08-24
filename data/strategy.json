@@ -20,9 +20,11 @@
     "skipFallingKnifeDca": true
   },
   "sell": {
-    "note": "Vendita = solo presa-profitto parziale. MAI in perdita, MAI tutta la posizione. minProfit/minRsi devono valere ENTRAMBI. fraction = quota della posizione da vendere (0.25 = 25%).",
+    "note": "Vendita = solo presa-profitto parziale. MAI in perdita, MAI tutta la posizione. minProfit/minRsi devono valere ENTRAMBI. fraction = quota della posizione da vendere (0.25 = 25%). Anti-frammentazione: dopo una vendita reale (data in data/sellState.json) niente nuove vendite dello stesso asset per cooldownDays; inoltre il segnale si RIARMA solo dopo che l'RSI e ridisceso sotto rearmRsi (evita di vendere ogni giorno sullo stesso picco).",
     "minProfit": 40,
     "minRsi": 65,
-    "fraction": 0.25
+    "fraction": 0.25,
+    "cooldownDays": 3,
+    "rearmRsi": 60
   }
 }

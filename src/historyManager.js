@@ -37,4 +37,4 @@ function saveSnapshot(analyses, watchlistAnalyses = []) {
   }
 }
 
-module.exports = { saveSnapshot };
+module.exports = { saveSnapshot, loadHistory };

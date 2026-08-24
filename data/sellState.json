@@ -1,0 +1,6 @@
+{
+  "note": "Registro delle vendite REALI eseguite (non delle raccomandazioni). Guida il cooldown e il re-arm del blocco sell in strategy.json. Aggiornare lastSellDate (YYYY-MM-DD) dopo ogni presa-profitto eseguita sull'App, insieme a portfolio.json.",
+  "sells": {
+    "BTC": { "lastSellDate": "2026-08-23" }
+  }
+}

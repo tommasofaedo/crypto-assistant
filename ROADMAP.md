@@ -184,6 +184,8 @@ positivo), la quantity totale scende solo per una vendita/uscita reale. Idempote
 solo su un calo effettivo), pre-seed delle baseline per tutti gli asset. La data è quella
 della riconciliazione (stima), resta l'override manuale per precisione. Verificato: 10/10
 unit test su `reconcileSells` + 0 falsi positivi sui dati reali + `sellGate` retro-compatibile.
+**Verificato live 24/08**: `node sync-app.js` sui saldi reali → 0 vendite dedotte (nessun calo
+di quantity), `sellState.json` non riscritto (idempotenza confermata), `portfolio.json` senza deriva.
 
 ---
 
@@ -195,6 +197,7 @@ unit test su `reconcileSells` + 0 falsi positivi sui dati reali + `sellGate` ret
 - **Taratura soglie tilt adattivo**: dopo aver osservato il comportamento reale, calibrare `altConvictionScore` (40), `altConvictionOutperf` (20), `altSeasonIndex` (60).
 - **Livello 3 "Edge da derivati"** (scartato 08/07): funding rate + open interest dal server MCP Crypto.com. Da riconsiderare se si vuole un segnale di posizionamento professionale.
 - **Alert quando cambia la modalità**: notifica quando il motore passa da conservativo a tilt-balanced (o viceversa) — è un cambio di regime che vale la pena segnalare.
+- **Semplificare i due runner del bot (emerso 24/08)**: la soluzione attuale (PM2 primario / GHA subordinato via `BOT_ROLE`) è corretta ma non la più semplice possibile. Se il PC è spento solo di rado, valutare se togliere del tutto il bot interattivo GHA (tenendo solo PM2 always-on + il report automatico delle 9:00) — meno complessità di coordinamento a costo della copertura interattiva notturna a PC spento. Decisione di Tommaso, non urgente.
 
 ## 💡 Idee future (non pianificate)
 

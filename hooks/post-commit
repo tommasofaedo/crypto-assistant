@@ -8,9 +8,9 @@
 
 changed=$(git diff-tree --no-commit-id --name-only -r HEAD)
 
-echo "$changed" | grep -qE '^(src|data)/' || exit 0
+echo "$changed" | grep -qE '^(src|data)/|^telegram-bot\.js$' || exit 0
 
-echo "[post-commit] commit tocca src/ o data/ -> pm2 reload crypto-bot"
+echo "[post-commit] commit tocca src/, data/ o telegram-bot.js -> pm2 reload crypto-bot"
 if command -v pm2 >/dev/null 2>&1; then
   pm2 reload crypto-bot --update-env >/dev/null 2>&1 \
     && echo "[post-commit] crypto-bot ricaricato" \

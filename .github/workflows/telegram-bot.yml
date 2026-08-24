@@ -30,6 +30,7 @@ jobs:
         # "|| true" evita che il workflow fallisca quando timeout termina il processo
         run: timeout 18000 node telegram-bot.js || true
         env:
+          BOT_ROLE: gha   # ruolo SUBORDINATO: cede al bot locale PM2 quando il PC è acceso
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}

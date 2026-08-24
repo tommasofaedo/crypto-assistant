@@ -29,17 +29,6 @@ async function send(chatId, text) {
 
 let isAnalyzing = false;
 
-// Finestre GHA in UTC (minutes from midnight)
-// W1: 03:00-08:00, W2: 08:30-13:30, W3: 14:00-19:00, W4: 19:30-00:30
-function isInGHAWindow() {
-  const now = new Date();
-  const t = now.getUTCHours() * 60 + now.getUTCMinutes();
-  return (t >= 180 && t < 480)   // W1: 03:00-08:00
-      || (t >= 510 && t < 810)   // W2: 08:30-13:30
-      || (t >= 840 && t < 1140)  // W3: 14:00-19:00
-      || (t >= 1170) || (t < 30); // W4: 19:30-00:30 (attraversa mezzanotte)
-}
-
 function parseBudget(text) {
   const match = text.match(/(\d+(?:[.,]\d+)?)/);
   return match ? parseFloat(match[1].replace(',', '.')) : 0;
@@ -157,18 +146,20 @@ async function processUpdate(update) {
 async function poll() {
   let offset = 0;
   let consecutive409 = 0;
-  // Passive mode: PM2 cede il controllo a GHA e salta i messaggi.
-  // Si entra automaticamente se: (a) si avvia durante una finestra GHA,
-  // oppure (b) si ricevono 5 errori 409 consecutivi.
-  // Si esce solo dopo GHA_EXIT_WINS poll vinti di fila (isteresi anti-flap).
-  const GHA_ENTER_THRESHOLD = 5;
-  const GHA_EXIT_WINS = 3; // ~90s di poll idle senza 409 = GHA terminato
-  let passiveMode = isInGHAWindow();
+  // Priorità basata sulla PRESENZA, non sull'orario:
+  //  - PM2 locale = PRIMARIO: non cede mai. Sui 409 ritenta in fretta e si RIPRENDE il
+  //    long-poll → quando il PC è acceso risponde sempre lui, col codice/config freschi.
+  //  - GHA (BOT_ROLE=gha) = SUBORDINATO: parte passivo e subentra SOLO dopo aver vinto
+  //    N poll di fila (= primario assente = PC spento). Sui 409 torna passivo. È il fallback.
+  const subordinate = process.env.BOT_ROLE === 'gha';
+  const PASSIVE_ENTER_THRESHOLD = 5; // 409 consecutivi prima che il subordinato ceda
+  const PASSIVE_EXIT_WINS = 3;       // ~90s di poll vinti = primario assente → il fallback subentra
+  let passiveMode = subordinate;     // il subordinato parte passivo; il primario mai
   let consecutiveWins = 0;
 
-  console.log(`🤖 Bot Telegram avviato — chat autorizzata: ${ALLOWED_CHAT}`);
+  console.log(`🤖 Bot Telegram avviato — chat autorizzata: ${ALLOWED_CHAT} — ruolo: ${subordinate ? 'SUBORDINATO (GHA, fallback)' : 'PRIMARIO (locale)'}`);
   if (passiveMode) {
-    console.log('Finestra GHA attiva al momento dell\'avvio — modalità passiva (PM2 cede a GHA)');
+    console.log('Avvio in modalità passiva — cede al primario finché è attivo (subentra se sparisce)');
   }
 
   // Salta i messaggi già in coda prima dell'avvio (evita di processare comandi vecchi)
@@ -199,14 +190,15 @@ async function poll() {
         }
       }
 
-      // Poll riuscito: accumula wins; esci dalla modalità passiva solo dopo GHA_EXIT_WINS
+      // Poll riuscito: accumula wins; il subordinato subentra solo dopo PASSIVE_EXIT_WINS
+      // poll vinti di fila (= il primario è sparito, il PC si è spento).
       consecutive409 = 0;
       if (passiveMode) {
         consecutiveWins++;
-        if (consecutiveWins >= GHA_EXIT_WINS) {
+        if (consecutiveWins >= PASSIVE_EXIT_WINS) {
           passiveMode = false;
           consecutiveWins = 0;
-          console.log('GHA non più attivo — PM2 torna in modalità attiva');
+          console.log('Primario non più attivo — il fallback subentra (modalità attiva)');
         }
       } else {
         consecutiveWins = 0;
@@ -216,13 +208,20 @@ async function poll() {
       if (status === 409) {
         consecutive409++;
         consecutiveWins = 0;
-        if (!passiveMode && consecutive409 >= GHA_ENTER_THRESHOLD) {
-          passiveMode = true;
-          console.log(`Entrata in modalità passiva (${consecutive409} errori 409 — GHA attivo)`);
+        if (subordinate) {
+          // Fallback: cede al primario. Dopo PASSIVE_ENTER_THRESHOLD 409 va passivo e attende.
+          if (!passiveMode && consecutive409 >= PASSIVE_ENTER_THRESHOLD) {
+            passiveMode = true;
+            console.log(`Entrata in modalità passiva (${consecutive409} errori 409 — primario attivo)`);
+          } else {
+            console.error(`Errore polling: 409 (primario attivo, retry tra 60s — consecutivi: ${consecutive409})`);
+          }
+          await new Promise(r => setTimeout(r, 60000));
         } else {
-          console.error(`Errore polling: 409 (GHA attivo, retry tra 60s — consecutivi: ${consecutive409})`);
+          // Primario: non cede MAI. Ritenta in fretta per riprendersi il long-poll dal fallback.
+          console.error(`409 (un altro bot fa polling — il primario si riprende il controllo, retry tra 3s — consecutivi: ${consecutive409})`);
+          await new Promise(r => setTimeout(r, 3000));
         }
-        await new Promise(r => setTimeout(r, 60000));
       } else {
         consecutiveWins = 0;
         const isNetwork = ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND'].includes(err.code);

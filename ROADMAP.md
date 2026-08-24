@@ -6,6 +6,21 @@ Miglioramenti pianificati, in ordine di priorità.
 
 ## ✅ Completati
 
+### Anti-frammentazione della presa-profitto: cooldown + re-arm RSI (24/08/2026)
+Prima presa-profitto reale eseguita il **23/08/2026** (venduti €150 di BTC in 2 tranche
+@ ~€63.647, +91.8% — prima vendita BTC e primo profitto realizzato di sempre). Da lì è emerso
+un buco: il motore **rifirmava "VENDI 25%" ad ogni run** finché `P&L ≥ 40` e `RSI ≥ 65`, senza
+memoria delle vendite → rischio di sminuzzare la posizione giorno per giorno sullo stesso picco.
+Fix in `aiAdvisor.js` (`sellGate()`), soglie esternalizzate nel blocco `sell` di `strategy.json`:
+- **Cooldown** (`sell.cooldownDays: 3`): dopo una vendita reale, stesso asset fermo per 3 giorni.
+- **Re-arm** (`sell.rearmRsi: 60`): superato il cooldown, nuova vendita solo dopo che l'RSI è
+  ridisceso sotto 60 (vende sul prossimo picco, non ogni giorno sullo stesso). Serie RSI letta
+  da `history.json` (`historyManager` ora esporta `loadHistory`).
+- Nuovo **`data/sellState.json`** = registro delle vendite REALI (`{SYMBOL:{lastSellDate}}`), che
+  arma cooldown/re-arm (NON le raccomandazioni). Seed: BTC 2026-08-23. Da aggiornare con la data
+  insieme a `portfolio.json` dopo ogni presa-profitto (candidato a futura automazione in `sync-app.js`).
+- Verificato: unit test `sellGate` 6/6 + integrazione end-to-end (BTC bloccato, ETH ok).
+
 ### Lettura saldi App live + vendite cappate al disponibile (11/08/2026)
 `wapi.crypto.com` è finalmente **online** (era 404 a luglio). Nuovo `sync-app.js`: legge il
 wallet Crypto.com **App** in sola lettura tramite la skill ufficiale `crypto-com-app`

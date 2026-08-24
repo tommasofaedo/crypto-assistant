@@ -166,16 +166,23 @@ Il codice mostra già P&L se `avgBuyPrice > 0` in `portfolio.json`.
 
 ---
 
-### 8. Deduplicazione messaggi PM2/GHA con file lock
-**Impatto:** basso (già mitigato) — eliminerebbe il residuo 5min di rischio duplicato  
+### 8. Deduplicazione messaggi PM2/GHA — ✅ RISOLTO 24/08/2026 (priorità per-presenza)
+Superato dall'inversione di priorità (`BOT_ROLE`): un solo responder attivo alla volta
+(PM2 primario a PC acceso, GHA subordinato altrimenti), quindi niente più duplicati né
+risposte da codice stale. Vedi "Coordinamento bot" nei Completati.
+**Residuo noto (accettato, basso impatto):** breve sovrapposizione quando il PC si accende
+*dentro* una finestra GHA (~pochi cicli di 409) o si spegne (~90s di gap). Un file-lock su
+`update_id` lo azzererebbe del tutto, ma non ne vale lo sforzo per ora.
+
+### 9. Automatizzare `data/sellState.json` (togliere il SPOF manuale)
+**Impatto:** alto — l'anti-frammentazione dipende da un aggiornamento a mano  
 **Sforzo:** basso
 
-Il fix attuale (60s wait + skip dopo 5 × 409) riduce ma non azzera la race condition
-nei primi 5 minuti di ogni finestra GHA. Soluzione definitiva: scrivere l'`update_id`
-dell'ultimo messaggio processato in `data/last_update_id.txt`.
-PM2 legge il file prima di processare: se l'`update_id` è già presente, skippa.
-GHA è su runner diverso, quindi non condivide il file — ma PM2 sì, e il problema
-principale è PM2 che duplica in locale.
+Oggi `lastSellDate` va aggiornato a mano dopo ogni presa-profitto reale (insieme a
+`portfolio.json`). Se ci si dimentica, il cooldown non scatta **in silenzio** → il bot
+può rifirmare la vendita. Automatizzare in `sync-app.js`: al rilevamento di una riduzione
+di `availableForTrading` di un asset (o di una vendita registrata), scrivere la data in
+`sellState.json`. Elimina l'unico punto in cui l'errore umano riapre il bug del 24/08.
 
 ---
 

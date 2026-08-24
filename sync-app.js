@@ -23,6 +23,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execSync } = require('child_process');
+const { reconcileSells } = require('./src/sellStateManager');
 
 const PORTFOLIO_PATH = path.join(__dirname, 'data', 'portfolio.json');
 const SKILL_DIR = process.env.CDC_APP_SKILL_DIR
@@ -105,6 +106,10 @@ function main() {
   portfolio.source = 'crypto.com-app';
   fs.writeFileSync(PORTFOLIO_PATH, JSON.stringify(portfolio, null, 2), 'utf-8');
 
+  // Anti-frammentazione: deriva le vendite reali dal calo di `quantity` (totale).
+  // Arma cooldown/re-arm in data/sellState.json senza aggiornamento manuale (ROADMAP #9).
+  const detectedSells = reconcileSells(portfolio);
+
   // Report
   console.log('Disponibile per trading (live App):');
   for (const h of portfolio.holdings) {
@@ -123,6 +128,11 @@ function main() {
   }
   if (zeroed.length) {
     console.log(`\nℹ️  0 disponibile per trading (tutto in staking o assente): ${zeroed.join(', ')}`);
+  }
+  if (detectedSells.length) {
+    console.log('\n💰 Vendite rilevate (calo di quantity) → cooldown anti-frammentazione armato:');
+    detectedSells.forEach(s => console.log(`  ${s.symbol}: ${s.from} → ${s.to}  (lastSellDate ${s.date})`));
+    console.log('  ⚠️  Data = giorno della riconciliazione, non necessariamente della vendita. Correggibile a mano in data/sellState.json.');
   }
 
   const total = allocation.reduce((s, p) => s + parseFloat(p.price_native?.amount ?? 0), 0);

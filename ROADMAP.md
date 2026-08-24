@@ -174,15 +174,16 @@ risposte da codice stale. Vedi "Coordinamento bot" nei Completati.
 *dentro* una finestra GHA (~pochi cicli di 409) o si spegne (~90s di gap). Un file-lock su
 `update_id` lo azzererebbe del tutto, ma non ne vale lo sforzo per ora.
 
-### 9. Automatizzare `data/sellState.json` (togliere il SPOF manuale)
-**Impatto:** alto — l'anti-frammentazione dipende da un aggiornamento a mano  
-**Sforzo:** basso
-
-Oggi `lastSellDate` va aggiornato a mano dopo ogni presa-profitto reale (insieme a
-`portfolio.json`). Se ci si dimentica, il cooldown non scatta **in silenzio** → il bot
-può rifirmare la vendita. Automatizzare in `sync-app.js`: al rilevamento di una riduzione
-di `availableForTrading` di un asset (o di una vendita registrata), scrivere la data in
-`sellState.json`. Elimina l'unico punto in cui l'errore umano riapre il bug del 24/08.
+### 9. Automatizzare `data/sellState.json` — ✅ FATTO 24/08/2026
+`lastSellDate` non va più aggiornato a mano: `sync-app.js` lo **deriva** dal calo di
+`quantity` (totale) tra due riconciliazioni. Nuovo modulo `src/sellStateManager.js`
+(`reconcileSells`): confronta la quantity attuale con `lastKnownQuantity` memorizzata; se
+è scesa → registra `lastSellDate = oggi` e arma il cooldown. **Scelto il calo di `quantity`
+e non di `availableForTrading`**: quest'ultimo cala anche mettendo in staking (falso
+positivo), la quantity totale scende solo per una vendita/uscita reale. Idempotente (scrive
+solo su un calo effettivo), pre-seed delle baseline per tutti gli asset. La data è quella
+della riconciliazione (stima), resta l'override manuale per precisione. Verificato: 10/10
+unit test su `reconcileSells` + 0 falsi positivi sui dati reali + `sellGate` retro-compatibile.
 
 ---
 

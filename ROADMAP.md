@@ -6,6 +6,12 @@ Miglioramenti pianificati, in ordine di priorità.
 
 ## ✅ Completati
 
+### Coordinamento bot: PM2 primario / GHA fallback + auto-reload (24/08/2026)
+Dopo il commit anti-frammentazione, il bot Telegram **rifirmava comunque `VENDI 25% BTC`** (già bloccata dal cooldown). Diagnosi: non era la logica — dimostrato che `computeStrategicPlan`, col codice on-disk e dati live, non produceva quella vendita. Erano due difetti di **freschezza del codice in esecuzione**:
+- **Bot locale PM2 non ricaricato** dopo il commit → nuovo git hook versionato `hooks/post-commit` (attivato con `git config core.hooksPath hooks`) che fa `pm2 reload crypto-bot` sui commit che toccano `src/`, `data/` o `telegram-bot.js`. `.gitattributes` forza LF sull'hook (CRLF romperebbe lo shebang).
+- **Causa vera — bot GHA con checkout congelato di 5h**: il coordinamento in `telegram-bot.js` faceva di GHA il **primario per fascia oraria** (`isInGHAWindow`) e metteva passivo il PM2 fresco → rispondeva il codice vecchio del cloud. **Priorità invertita da oraria a per-presenza**: `BOT_ROLE=gha` (env nello step del workflow) marca il cloud come **SUBORDINATO** (parte passivo, subentra solo dopo ~90s di poll vinti = PC spento); il **PM2 locale è PRIMARIO** (non cede mai, sui 409 si riprende il long-poll in 3s). `isInGHAWindow` rimossa. Risultato: PC acceso → risponde sempre il locale col codice fresco; PC spento → copre il fallback cloud. Un solo responder, niente conflitti 409 casuali.
+- Verificato end-to-end: bot live logga `ruolo: PRIMARIO`, `/analisi` reale (via `telegram-report.js --local`) → nessuna riga `VENDI BTC` (gate: cooldown 1.4/3gg).
+
 ### Anti-frammentazione della presa-profitto: cooldown + re-arm RSI (24/08/2026)
 Prima presa-profitto reale eseguita il **23/08/2026** (venduti €150 di BTC in 2 tranche
 @ ~€63.647, +91.8% — prima vendita BTC e primo profitto realizzato di sempre). Da lì è emerso

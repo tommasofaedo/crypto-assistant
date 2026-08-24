@@ -1,0 +1,22 @@
+#!/bin/sh
+# Ricarica il bot Telegram (PM2 crypto-bot) dopo ogni commit che tocca src/ o data/,
+# così il processo live non diverge mai dal codice/config del repo.
+# (Motivo storico: 24/08/2026 il bot proponeva una vendita BTC gia bloccata
+#  dal cooldown perche girava codice pre-anti-frammentazione non ricaricato.)
+#
+# Attivazione (una tantum per clone):  git config core.hooksPath hooks
+
+changed=$(git diff-tree --no-commit-id --name-only -r HEAD)
+
+echo "$changed" | grep -qE '^(src|data)/' || exit 0
+
+echo "[post-commit] commit tocca src/ o data/ -> pm2 reload crypto-bot"
+if command -v pm2 >/dev/null 2>&1; then
+  pm2 reload crypto-bot --update-env >/dev/null 2>&1 \
+    && echo "[post-commit] crypto-bot ricaricato" \
+    || echo "[post-commit] ATTENZIONE: pm2 reload fallito (bot non in esecuzione?)"
+else
+  echo "[post-commit] ATTENZIONE: pm2 non trovato nel PATH, reload saltato"
+fi
+
+exit 0

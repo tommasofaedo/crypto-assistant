@@ -1,12 +1,12 @@
 {
   "note": "Registro delle vendite REALI (non delle raccomandazioni). Guida cooldown + re-arm del blocco sell in strategy.json. `lastSellDate` (YYYY-MM-DD) e ora DERIVATO in automatico da sync-app.js quando `quantity` (totale) cala tra due riconciliazioni (ROADMAP #9): non serve piu aggiornarlo a mano, ma resta correggibile per precisione. `lastKnownQuantity` = ultima quantity vista, baseline per il rilevamento del prossimo calo (gestito dal codice, non toccare a mano).",
   "sells": {
-    "ETH":  { "lastKnownQuantity": 0.79201303 },
-    "SOL":  { "lastKnownQuantity": 11.88755099 },
+    "ETH":  { "lastKnownQuantity": 0.80141637 },
+    "SOL":  { "lastKnownQuantity": 11.88985153 },
     "BTC":  { "lastSellDate": "2026-08-23", "lastKnownQuantity": 0.01087841 },
     "XRP":  { "lastKnownQuantity": 140.881 },
     "AAVE": { "lastKnownQuantity": 3.92935 },
-    "CRO":  { "lastKnownQuantity": 332.9562892 },
+    "CRO":  { "lastKnownQuantity": 332.98580404 },
     "LINK": { "lastKnownQuantity": 0.7703 },
     "UNI":  { "lastKnownQuantity": 1.3 }
   }

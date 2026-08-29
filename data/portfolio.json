@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-28",
+  "updatedAt": "2026-08-29",
   "currency": "EUR",
   "holdings": [
     {
@@ -23,11 +23,11 @@
     {
       "symbol": "BTC",
       "name": "Bitcoin",
-      "quantity": 0.01087841,
+      "quantity": 0.01117031,
       "avgBuyPrice": 33175,
-      "valueAtSnapshot": 625.58,
-      "notes": "0.003 BTC acquistati su CDC (€145.70). 0.007133 BTC netti da Binance (comprati 2017-2019 a ~€28.500/BTC stima, depositati CDC 2021-03-10 poi metà ritrasfertiti). Acquisti €25 il 2026-07-03 + €25 il 2026-07-04 (0.0004472 BTC) + €25 il 2026-07-06 mattina (0.0004438 BTC @ ~€56331) + €15 il 2026-07-06 pomeriggio (0.0002713 BTC @ ~€55290). Totale stimato €439. Presa-profitto 2026-08-23: venduti 0.0023568 BTC (2 tranche) per €150 @ ~€63.647/BTC (+91.8%).",
-      "availableForTrading": 0.01087841
+      "valueAtSnapshot": 765.4,
+      "notes": "0.003 BTC acquistati su CDC (€145.70). 0.007133 BTC netti da Binance (comprati 2017-2019 a ~€28.500/BTC stima, depositati CDC 2021-03-10 poi metà ritrasfertiti). Acquisti €25 il 2026-07-03 + €25 il 2026-07-04 (0.0004472 BTC) + €25 il 2026-07-06 mattina (0.0004438 BTC @ ~€56331) + €15 il 2026-07-06 pomeriggio (0.0002713 BTC @ ~€55290). Totale stimato €439. Presa-profitto 2026-08-23: venduti 0.0023568 BTC (2 tranche) per €150 @ ~€63.647/BTC (+91.8%). Acquisto 2026-08-29: +€20 (+0.0002919 BTC @ ~€68517, viban_purchase confermato da CSV criptovaluta_transactions_record_29agosto).",
+      "availableForTrading": 0.01117031
     },
     {
       "symbol": "XRP",

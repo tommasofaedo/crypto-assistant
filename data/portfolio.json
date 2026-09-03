@@ -1,23 +1,23 @@
 {
-  "updatedAt": "2026-09-01",
+  "updatedAt": "2026-09-02",
   "currency": "EUR",
   "holdings": [
     {
       "symbol": "ETH",
       "name": "Ethereum",
-      "quantity": 0.81066201,
-      "avgBuyPrice": 1672,
+      "quantity": 0.81782629,
+      "avgBuyPrice": 1676,
       "valueAtSnapshot": 1004.23,
-      "notes": "16 acquisti diretti €1250 + basket €18.75 = €1268.81 totali. +€25 acquisto 04/07 (0.015854 ETH) + €25 acquisto 06/07 mattina (0.015733 ETH @ ~€1589) + €15 acquisto 06/07 pomeriggio (0.009597 ETH @ ~€1563). Premi staking 06/07: +0.00016255 ETH (DPoS+DefiLending). Premi staking 10/07: +0.0001598 ETH (DPoS 0.0001596 + DefiLending 0.0000002). Acquisto 2026-08-26: +€20 (+0.009234 ETH, viban_purchase confermato da CSV; su raccomandazione giornaliera). Premi staking 2026-08-26: +0.00016934 ETH (DPoS 0.00016915 + DefiLending 0.00000019). Acquisto 2026-08-28: +€20 (+0.009089 ETH @ ~€2200, viban_purchase confermato da CSV criptovaluta_transactions_record_28agosto). Premi staking 2026-08-28: +0.00015664 ETH (DPoS 0.00015645 + DefiLending 0.00000019). Parte ETH in staking DPoS. Avg effettivo su holding attuale.",
-      "availableForTrading": 0.069112
+      "notes": "16 acquisti diretti €1250 + basket €18.75 = €1268.81 totali. +€25 acquisto 04/07 (0.015854 ETH) + €25 acquisto 06/07 mattina (0.015733 ETH @ ~€1589) + €15 acquisto 06/07 pomeriggio (0.009597 ETH @ ~€1563). Premi staking 06/07: +0.00016255 ETH (DPoS+DefiLending). Premi staking 10/07: +0.0001598 ETH (DPoS 0.0001596 + DefiLending 0.0000002). Acquisto 2026-08-26: +€20 (+0.009234 ETH, viban_purchase confermato da CSV; su raccomandazione giornaliera). Premi staking 2026-08-26: +0.00016934 ETH (DPoS 0.00016915 + DefiLending 0.00000019). Acquisto 2026-08-28: +€20 (+0.009089 ETH @ ~€2200, viban_purchase confermato da CSV criptovaluta_transactions_record_28agosto). Premi staking 2026-08-28: +0.00015664 ETH (DPoS 0.00015645 + DefiLending 0.00000019). Acquisto 2026-09-02: +€15 (+0.007057 ETH @ ~€2125, viban_purchase confermato da CSV criptovaluta_transactions_record_0209_0309). Premi staking 2026-09-02: +0.00010728 ETH (DPoS compound 0.0001071 + DefiLending 0.00000018). Parte ETH in staking DPoS. Avg effettivo su holding attuale.",
+      "availableForTrading": 0.076169
     },
     {
       "symbol": "SOL",
       "name": "Solana",
-      "quantity": 11.89214674,
+      "quantity": 11.89410106,
       "avgBuyPrice": 143,
       "valueAtSnapshot": 730.49,
-      "notes": "8 acquisti diretti + basket = €1696 totali. ~10.9 SOL in staking DPoS. ~1.2 SOL da premi compound. Premio DPoS 06/07: +0.00268683 SOL. Premio DPoS 10/07: +0.00267416 SOL. Premio DPoS 2026-08-26: +0.00230054 SOL. Premio DPoS 2026-08-28: +0.00229521 SOL. Avg effettivo su holding attuale.",
+      "notes": "8 acquisti diretti + basket = €1696 totali. ~10.9 SOL in staking DPoS. ~1.2 SOL da premi compound. Premio DPoS 06/07: +0.00268683 SOL. Premio DPoS 10/07: +0.00267416 SOL. Premio DPoS 2026-08-26: +0.00230054 SOL. Premio DPoS 2026-08-28: +0.00229521 SOL. Premio DPoS 2026-09-02: +0.00195432 SOL (compound). Avg effettivo su holding attuale.",
       "availableForTrading": 0
     },
     {
@@ -50,11 +50,11 @@
     {
       "symbol": "CRO",
       "name": "Cronos",
-      "quantity": 333.01220285,
+      "quantity": 333.03836829,
       "avgBuyPrice": 0.37,
       "valueAtSnapshot": 16.04,
-      "notes": "€121.74 acquistati (5 ops, avg €0.11/CRO). Resto da cashback carta e premi DPoS (essenzialmente gratis). Premio DPoS 06/07: +0.04988664 CRO. Premio DPoS 10/07: +0.03286256 CRO. Premio DPoS 2026-08-26: +0.02951484 CRO. Premio DPoS 2026-08-28: +0.02639881 CRO (non-compound, spot). Avg effettivo su holding totale. Asset NO_SELL.",
-      "availableForTrading": 144.88454649
+      "notes": "€121.74 acquistati (5 ops, avg €0.11/CRO). Resto da cashback carta e premi DPoS (essenzialmente gratis). Premio DPoS 06/07: +0.04988664 CRO. Premio DPoS 10/07: +0.03286256 CRO. Premio DPoS 2026-08-26: +0.02951484 CRO. Premio DPoS 2026-08-28: +0.02639881 CRO (non-compound, spot). Premio DPoS 2026-09-02: +0.02616544 CRO (non-compound, spot). Avg effettivo su holding totale. Asset NO_SELL.",
+      "availableForTrading": 144.91071193
     },
     {
       "symbol": "LINK",

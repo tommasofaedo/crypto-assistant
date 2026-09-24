@@ -189,6 +189,25 @@ di quantity), `sellState.json` non riscritto (idempotenza confermata), `portfoli
 
 ---
 
+### 10. Blocco codice: reco di vendita solo con snapshot fresco
+**Impatto:** alto — chiude l'unico buco rimasto sulla presa-profitto  
+**Sforzo:** basso (~30 min)  
+**Stato:** 🔲 da fare — deciso 24/09/2026 dopo l'incidente del 23/09
+
+Cooldown/re-arm/cap vivono solo in `sellGate` (`aiAdvisor.js`): una reco di vendita emessa
+**fuori dal motore** (assistente che improvvisa un "VENDI" in chat senza girare l'engine) li
+bypassa tutti. Incidente 23/09: reco "VENDI 9% ETH" scritta a mano ricalcando quella corretta
+del 22, senza run del giorno (nessun snapshot 23/09 in `history.json`); una run reale avrebbe
+bloccato su cooldown (1/3gg) + re-arm (RSI mai <60) + cap (`availableForTrading` ~0). Nessuna
+vendita eseguita, nessun danno — ma la protezione oggi dipende dalla disciplina, non dal codice.
+
+**Implementazione:** un guard che rifiuta di emettere una sezione di vendita se non esiste uno
+snapshot `history.json` con `date` di **oggi** per l'asset (o entro N ore). Così, se la reco non
+nasce da una run fresca del motore, il sistema stesso non la produce. Trasforma la regola
+comportamentale (`feedback_no_handauthored_sell`) in un blocco tecnico.
+
+---
+
 ## 🔮 Da valutare — emersi dalla revisione 08/07/2026
 
 - **Backtest dei nuovi pesi/parametri**: validare lo scoring regime-aware e i parametri di `data/strategy.json` (tetti, soglie tilt) su dati storici prima di fidarsi ciecamente. Priorità alta: ora i pesi sono ragionati ma non validati empiricamente.
@@ -198,7 +217,7 @@ di quantity), `sellState.json` non riscritto (idempotenza confermata), `portfoli
 - **Livello 3 "Edge da derivati"** (scartato 08/07): funding rate + open interest dal server MCP Crypto.com. Da riconsiderare se si vuole un segnale di posizionamento professionale.
 - **Alert quando cambia la modalità**: notifica quando il motore passa da conservativo a tilt-balanced (o viceversa) — è un cambio di regime che vale la pena segnalare.
 - **Semplificare i due runner del bot (emerso 24/08)**: la soluzione attuale (PM2 primario / GHA subordinato via `BOT_ROLE`) è corretta ma non la più semplice possibile. Se il PC è spento solo di rado, valutare se togliere del tutto il bot interattivo GHA (tenendo solo PM2 always-on + il report automatico delle 9:00) — meno complessità di coordinamento a costo della copertura interattiva notturna a PC spento. Decisione di Tommaso, non urgente.
-- **Guardia anti-frammentazione solo nel motore (emerso 23/09/2026)**: cooldown/re-arm/cap-al-vendibile vivono TUTTI in `aiAdvisor.js` (`sellGate`). Una reco di vendita prodotta **fuori dal motore** (assistente che improvvisa un "VENDI" in chat senza girare l'engine) li bypassa in blocco. Incidente 23/09: reco "VENDI 9% ETH" scritta a mano ricalcando quella corretta del 22, ma il motore non era girato (nessun snapshot 23/09 in `history.json`) — una run reale avrebbe bloccato su cooldown (1/3gg) + re-arm (RSI mai <60) + cap (`availableForTrading` ~0). Nessuna vendita eseguita, nessun danno. **Mitigazione:** regola comportamentale (le reco di vendita escono solo dal motore girato al momento — vedi memoria `feedback_no_handauthored_sell`); opzionale, un check che rifiuti di emettere una reco di vendita senza uno snapshot `history.json` fresco del giorno. Bassa priorità: la logica è corretta, il difetto era di processo.
+- **Guardia anti-frammentazione solo nel motore (emerso 23/09/2026)**: cooldown/re-arm/cap-al-vendibile vivono TUTTI in `aiAdvisor.js` (`sellGate`), quindi una reco di vendita prodotta fuori dal motore li bypassa. → promosso a elemento d'azione (#10 in "Da fare"); regola comportamentale già in memoria `feedback_no_handauthored_sell`.
 
 ## 💡 Idee future (non pianificate)
 

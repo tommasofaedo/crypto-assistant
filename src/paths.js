@@ -106,6 +106,17 @@ function profileDir() {
   return path.join(PROFILES_DIR, getActiveProfile());
 }
 
+// Legge e parsa il .env di un profilo specifico (per nome), senza toccare il profilo attivo.
+// Usato dal push multi-utente per ricavare TELEGRAM_CHAT_ID / TELEGRAM_BUDGET di ogni cliente.
+function profileEnv(name) {
+  try {
+    const dotenv = require('dotenv');
+    return dotenv.parse(fs.readFileSync(path.join(PROFILES_DIR, name, '.env')));
+  } catch {
+    return {};
+  }
+}
+
 // Per-profilo (stato isolato)
 const portfolioPath = () => path.join(profileDir(), 'portfolio.json');
 const sellStatePath = () => path.join(profileDir(), 'sellState.json');
@@ -120,6 +131,6 @@ const watchlistPath = () => path.join(SHARED_DATA_DIR, 'watchlist.json');
 module.exports = {
   SHARED_DATA_DIR, PROFILES_DIR,
   listProfiles, resolveProfile, setActiveProfile, getActiveProfile, boot, extractProfileArg, loadEnv,
-  profileDir, portfolioPath, sellStatePath, historyPath, csvPath, envPath,
+  profileDir, profileEnv, portfolioPath, sellStatePath, historyPath, csvPath, envPath,
   strategyPath, watchlistPath,
 };

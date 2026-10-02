@@ -1,5 +1,8 @@
 const paths = require('./src/paths');
-paths.boot();
+// Bot INTERATTIVO = dell'operatore. Profilo esplicito (non auto) così non va in ambiguità
+// quando esistono profili cliente. I clienti sono push-only (telegram-report-all.js).
+const OPERATOR = paths.extractProfileArg(process.argv) || process.env.OPERATOR_PROFILE || 'tommaso';
+paths.setActiveProfile(OPERATOR);
 paths.loadEnv();
 const axios = require('axios');
 const { runAdvisor } = require('./src/advisor');

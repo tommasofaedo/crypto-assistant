@@ -24,9 +24,11 @@ function argValue(flag, def = null) {
 const ENV_TEMPLATE = `# Credenziali Crypto.com App di questo utente (sola lettura saldi) — per sync-app
 CDC_API_KEY=
 CDC_API_SECRET=
-# Chat Telegram dell'utente (per i report push)
+# Chat Telegram dell'utente (per i report push di telegram-report-all.js)
 TELEGRAM_CHAT_ID=
-# Interattivo (/analisi a comando): true solo per l'operatore
+# Budget giornaliero in € usato nei consigli push (0 = nessun acquisto proposto)
+TELEGRAM_BUDGET=0
+# Interattivo (/analisi a comando): true solo per l'operatore (i clienti sono push-only)
 TELEGRAM_INTERACTIVE=false
 `;
 

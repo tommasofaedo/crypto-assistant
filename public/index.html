@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>crypto-console</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1 id="title" data-home>crypto-console</h1>
+    <span id="subtitle">consigli · profili · storico</span>
+  </header>
+
+  <main>
+    <!-- HOME: griglia profili -->
+    <section id="home">
+      <div id="profiles" class="grid"></div>
+      <p id="home-empty" class="muted" hidden>Nessun profilo trovato in data/profiles/.</p>
+    </section>
+
+    <!-- DETTAGLIO profilo -->
+    <section id="detail" hidden>
+      <button class="link" id="back">← profili</button>
+      <h2 id="d-name"></h2>
+      <p class="muted" id="d-meta"></p>
+
+      <div class="controls">
+        <label>Budget € <input type="number" id="budget" value="0" min="0" step="5"></label>
+        <label class="chk"><input type="checkbox" id="useai" checked> con nota Marco Ferretti</label>
+        <button id="btn-analyze">Analizza</button>
+        <button id="btn-sync" class="secondary">Sync saldi</button>
+        <span id="busy" class="busy" hidden>…in corso</span>
+      </div>
+      <p id="d-error" class="error" hidden></p>
+
+      <h3>Portafoglio <span class="muted" id="pf-note"></span></h3>
+      <div class="table-wrap"><table id="pf-table"></table></div>
+
+      <div id="report-box" hidden>
+        <h3>Analisi <span class="muted" id="an-meta"></span></h3>
+        <div class="table-wrap"><table id="an-table"></table></div>
+        <h3>Raccomandazione Marco Ferretti</h3>
+        <pre id="report" class="report"></pre>
+      </div>
+
+      <h3>Storico recente</h3>
+      <div class="table-wrap"><table id="hist-table"></table></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

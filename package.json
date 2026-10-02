@@ -1,0 +1,13 @@
+{
+  "name": "crypto-console",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Console operativa personale per gestire più profili del motore crypto_assistant (consigli, CSV, storico). Solo localhost.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

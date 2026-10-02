@@ -1,0 +1,5 @@
+{
+  "enginePath": "../crypto_assistant",
+  "port": 4319,
+  "comment": "enginePath = cartella del motore crypto_assistant (relativo a questo file o assoluto). I profili vengono letti da <enginePath>/data/profiles."
+}

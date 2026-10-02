@@ -6,6 +6,36 @@ Miglioramenti pianificati, in ordine di priorità.
 
 ## ✅ Completati
 
+### Multi-profilo, console operativa e Telegram multi-utente (02/10/2026)
+Da richiesta: gestire **più portafogli** (utenti diversi su Crypto.com) con le **stesse** impostazioni di rischio/valutazione, **senza mai confonderli**.
+
+**Scaffolding multi-profilo (motore):** stato PER-PROFILO in `data/profiles/<nome>/`
+(portfolio, sellState, history, CSV, `.env`); settaggi CONDIVISI in `data/` (strategy,
+watchlist). Nuovo `src/paths.js` risolve i percorsi dal profilo attivo. **Selezione esplicita**
+(`--profile`/`PROFILE`; auto solo se esiste un unico profilo; con 0 o >1 e nessuna scelta →
+errore, **nessun default silenzioso**). Ricablati tutti i consumatori (`advisor`,
+`portfolioAnalyzer`, `aiAdvisor`, `historyManager`, `sellStateManager`, `sync-app`,
+`crosscheck`, ecc.) ed entry point. `.gitignore`: i dati finanziari dei profili diversi da
+`tommaso` sono **esclusi dal repo pubblico** (solo l'operatore resta tracciato).
+
+**Comandi JSON (per la console/automazioni):** `report-json.js` (consiglio completo),
+`reconcile.js` (riconciliazione CSV ↔ sovrano in sola lettura, con `src/csvLedger.js`
+condiviso da `crosscheck.js` → non divergono), `apply-quantities.js` (scrive quantità/avg +
+`reconcileSells` → un calo arma il cooldown come `sync-app`), `create-profile.js`.
+
+**Console web locale (repo separata, privata, solo `localhost`):** strumento dell'operatore,
+invoca il motore come **sottoprocesso** (un processo = un profilo → impossibile mescolare i
+portafogli). F1 consigli + storico, F2 upload CSV + riconciliazione (proposta), F3 scritture
+(applica quantità, modifica portafoglio, nuovo profilo) **con conferma**. Avvio con un `.bat`.
+
+**Telegram multi-utente:** un bot solo (token condiviso), un `TELEGRAM_CHAT_ID` per profilo.
+L'operatore (`OPERATOR_PROFILE`, default `tommaso`) è interattivo + report GHA (invariato); i
+clienti sono **push-only** via nuovo `telegram-report-all.js` (gira in **locale** perché i dati
+clienti sono gitignorati → non esistono su GHA; esclude l'operatore; **guardia chat_id
+duplicato**; `src/telegramReport.js` condiviso con `telegram-report.js`). `telegram-bot.js` e
+`telegram-report.js` ora selezionano l'operatore in modo **esplicito** → non vanno più in
+ambiguità quando esistono profili cliente.
+
 ### Coordinamento bot: PM2 primario / GHA fallback + auto-reload (24/08/2026)
 Dopo il commit anti-frammentazione, il bot Telegram **rifirmava comunque `VENDI 25% BTC`** (già bloccata dal cooldown). Diagnosi: non era la logica — dimostrato che `computeStrategicPlan`, col codice on-disk e dati live, non produceva quella vendita. Erano due difetti di **freschezza del codice in esecuzione**:
 - **Bot locale PM2 non ricaricato** dopo il commit → nuovo git hook versionato `hooks/post-commit` (attivato con `git config core.hooksPath hooks`) che fa `pm2 reload crypto-bot` sui commit che toccano `src/`, `data/` o `telegram-bot.js`. `.gitattributes` forza LF sull'hook (CRLF romperebbe lo shebang).
@@ -140,6 +170,10 @@ senza dover chiedere manualmente.
 nuovo script `telegram-alert.js` che chiama `runAdvisor()` e invia solo se ci sono
 segnali sopra soglia. Aggiungere flag `--silent` che non invia nulla se tutto è HOLD.
 
+> **Nota (02/10):** il pattern di loop multi-profilo + invio è già pronto in
+> `telegram-report-all.js` e `src/telegramReport.js` — l'alert condizionato si costruisce
+> aggiungendo il filtro soglie allo stesso giro (per i clienti resta locale, non GHA).
+
 ---
 
 ### 4. Storico raccomandazioni
@@ -206,6 +240,10 @@ snapshot `history.json` con `date` di **oggi** per l'asset (o entro N ore). Cos�
 nasce da una run fresca del motore, il sistema stesso non la produce. Trasforma la regola
 comportamentale (`feedback_no_handauthored_sell`) in un blocco tecnico.
 
+> **Nota (02/10):** la console (`report-json.js`) esegue **sempre** una run fresca del motore
+> per ogni consiglio, quindi di fatto non può produrre reco di vendita "a mano". Il guard a
+> livello di motore resta comunque utile per chiudere il buco anche fuori dalla console.
+
 ---
 
 ## 🔮 Da valutare — emersi dalla revisione 08/07/2026
@@ -218,6 +256,9 @@ comportamentale (`feedback_no_handauthored_sell`) in un blocco tecnico.
 - **Alert quando cambia la modalità**: notifica quando il motore passa da conservativo a tilt-balanced (o viceversa) — è un cambio di regime che vale la pena segnalare.
 - **Semplificare i due runner del bot (emerso 24/08)**: la soluzione attuale (PM2 primario / GHA subordinato via `BOT_ROLE`) è corretta ma non la più semplice possibile. Se il PC è spento solo di rado, valutare se togliere del tutto il bot interattivo GHA (tenendo solo PM2 always-on + il report automatico delle 9:00) — meno complessità di coordinamento a costo della copertura interattiva notturna a PC spento. Decisione di Tommaso, non urgente.
 - **Guardia anti-frammentazione solo nel motore (emerso 23/09/2026)**: cooldown/re-arm/cap-al-vendibile vivono TUTTI in `aiAdvisor.js` (`sellGate`), quindi una reco di vendita prodotta fuori dal motore li bypassa. → promosso a elemento d'azione (#10 in "Da fare"); regola comportamentale già in memoria `feedback_no_handauthored_sell`.
+- **Merge del CSV nel master (emerso 02/10)**: `reconcile.js` unisce il CSV caricato al master solo **in memoria** (per la proposta), non lo persiste → ricaricando lo stesso export le righe risultano di nuovo "nuove" (il dedup evita comunque doppi conteggi). Valutare un `--merge` che scriva il master aggiornato in fase di apply.
+- **Risposta cortese del bot ai clienti (emerso 02/10)**: oggi il bot interattivo ignora le chat non-operatore. Per i clienti push-only si potrebbe rispondere con un messaggio fisso ("ricevi i report automatici") invece del silenzio.
+- **Onboarding chat_id cliente (emerso 02/10)**: ricavare il `chat_id` di un nuovo cliente è manuale (deve scrivere al bot, poi si legge dagli update). Valutare un comando/endpoint che lo catturi e lo scriva nel `.env` del profilo.
 
 ## 💡 Idee future (non pianificate)
 
@@ -233,7 +274,8 @@ comportamentale (`feedback_no_handauthored_sell`) in un blocco tecnico.
 - **On-chain data**: Glassnode o Nansen free tier per flussi whale/exchange inflow
 - **Correlazione BTC**: se BTC scende >3% in 1h, invia alert automatico su tutto il portafoglio
 - ~~**Aggiornamento automatico portfolio.json**~~: ✅ fatto 11/08/2026 (`sync-app.js`) — vedi Completati
-- **Dashboard web**: interfaccia React/Next.js che mostra portfolio, segnali e storico
-  in tempo reale (richiede server pubblico)
+- ~~**Dashboard web**~~: ✅ coperta (02/10) dalla **console web locale** (repo separata,
+  `localhost`): profili, consigli, storico, upload CSV + riconciliazione, scritture. Non su
+  server pubblico (è operatore-only e maneggia dati di terzi + credenziali)
 - **Backtesting**: testare la strategia RSI+MACD+Bollinger su dati storici per validare
   i parametri prima di usarli sul portafoglio reale

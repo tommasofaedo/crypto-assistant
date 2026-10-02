@@ -39,6 +39,9 @@ Tre canali, una sola logica: **CLI locale** · **Bot Telegram** · **Report auto
 - 🎯 **Livelli operativi**: ogni acquisto esce con stop-loss e target concreti calcolati da ATR
 - 👁️ **Watchlist**: analisi su asset non in portafoglio — solo opportunità di acquisto (mai vendita)
 - 🔁 **Coerenza garantita**: locale e Telegram usano la stessa funzione — raccomandazione identica su ogni canale
+- 👥 **Multi-profilo**: più portafogli (utenti diversi) con le **stesse** impostazioni di rischio — stato isolato per profilo (`data/profiles/<nome>/`), selezione esplicita (`--profile`), **nessuna contaminazione** tra portafogli
+- 📥 **Riconciliazione CSV**: confronta i movimenti esportati da Crypto.com con le quantità sovrane e propone gli aggiornamenti (acquisti/premi consolidati) — senza mai abbassare un saldo per via dei buchi di export
+- 🖥️ **Console web locale** (companion, repo separata): gestione profili, consigli, upload CSV e storico da browser — solo `localhost`
 
 ---
 
@@ -119,13 +122,30 @@ crypto_assistant/
 │   ├── historicalData.js    # candele multi-timeframe 1D/7D/4h (Crypto.com + CoinGecko fallback)
 │   ├── sentiment.js         # Fear & Greed Index (alternative.me)
 │   ├── globalMetrics.js     # market cap, BTC dominance, altcoin season (CoinGecko)
-│   └── newsSentiment.js     # community sentiment (CoinGecko)
+│   ├── newsSentiment.js     # community sentiment (CoinGecko)
+│   ├── paths.js             # risolutore percorsi PER-PROFILO (multi-utente)
+│   ├── sellStateManager.js  # registro vendite reali (cooldown anti-frammentazione)
+│   ├── csvLedger.js         # parsing + somma CSV movimenti (condiviso crosscheck/reconcile)
+│   └── telegramReport.js    # formato + invio report (condiviso operatore/clienti)
 ├── local-advisor.js         # CLI locale — stampa dati + raccomandazione identica a Telegram
-├── telegram-bot.js          # bot Telegram (long polling, PM2)
-├── telegram-report.js       # report automatico GHA
-├── data/portfolio.json      # quantità asset detenuti
-├── data/watchlist.json      # asset non in portafoglio da monitorare
-├── data/strategy.json       # postura di rischio: pesi target, tetti, budget, tilt, prudenza, vendita
+├── index.js · agent.js      # CLI alternative (dashboard / con consulenza AI)
+├── telegram-bot.js          # bot interattivo dell'operatore (long polling, PM2)
+├── telegram-report.js       # report automatico dell'operatore (GHA)
+├── telegram-report-all.js   # push report ai profili CLIENTE (locale)
+├── report-json.js           # consiglio in JSON (consumato dalla console)
+├── reconcile.js             # riconciliazione CSV ↔ sovrano (sola lettura, JSON)
+├── apply-quantities.js      # scrive quantità/avg + reconcileSells (JSON)
+├── create-profile.js        # crea un nuovo profilo
+├── sync-app.js              # saldi live App → availableForTrading
+├── crosscheck.js            # audit CSV vs sovrano (sola lettura)
+├── data/
+│   ├── strategy.json        # postura di rischio — CONDIVISA tra tutti i profili
+│   ├── watchlist.json       # asset monitorati — condivisa
+│   └── profiles/<nome>/     # stato PER-PROFILO (isolato, mai condiviso)
+│       ├── portfolio.json   # quantità asset detenuti
+│       ├── sellState.json   # registro vendite reali
+│       ├── history.json     # storico analisi
+│       └── .env             # credenziali + chat Telegram del profilo
 └── .github/workflows/
     ├── daily-report.yml     # report mattutino 09:00 IT (budget default €30)
     └── telegram-bot.yml     # bot attivo 20h/giorno in 4 finestre da 5h
@@ -153,7 +173,7 @@ CRYPTO_API_KEY=...
 CRYPTO_API_SECRET=...
 ```
 
-**3. Configura il portafoglio** in `data/portfolio.json`:
+**3. Configura il portafoglio** in `data/profiles/<nome>/portfolio.json` (es. `data/profiles/tommaso/`):
 
 ```json
 {
@@ -163,6 +183,8 @@ CRYPTO_API_SECRET=...
   ]
 }
 ```
+
+> Con un solo profilo i comandi funzionano senza flag (auto-selezione). Per crearne uno nuovo: `node create-profile.js --name <nome>`. Vedi la sezione **Multi-profilo**.
 
 <details>
 <summary>4. Watchlist (opzionale) — asset da monitorare per nuove posizioni</summary>
@@ -195,6 +217,32 @@ node local-advisor.js 100    # analisi con €100 disponibili (attiva gli acquis
 ```
 
 L'output include i dati tecnici completi (RSI, MACD, Bollinger, score per ogni asset) e la **raccomandazione finale** — identica a quella che riceverebbe il bot Telegram con gli stessi dati e budget.
+
+---
+
+## 👥 Multi-profilo
+
+Più portafogli (utenti diversi) con la **stessa** postura di rischio/valutazione. Ogni profilo ha lo **stato isolato** in `data/profiles/<nome>/` (portfolio, sellState, history, CSV, `.env`); i **settaggi** (`strategy.json`, `watchlist.json`) restano **condivisi** in `data/` — un'unica postura per tutti.
+
+**Anti-confusione by design:** nessun file mutabile condiviso tra profili, e **selezione esplicita** del profilo. Con un solo profilo l'auto-selezione è sicura; con più di uno e nessuna scelta → **errore** (niente default silenzioso che agisca sul portafoglio sbagliato).
+
+```bash
+node local-advisor.js --profile mario 50     # analisi del profilo "mario" con €50
+node create-profile.js --name mario          # crea un nuovo profilo (cartella + template)
+node sync-app.js --profile mario             # saldi live App del profilo
+```
+
+**Comandi JSON (consumati dalla console / automazioni):**
+
+| Comando | Fa |
+|---------|-----|
+| `report-json.js --profile X [budget] [--no-ai]` | consiglio completo in JSON |
+| `reconcile.js --profile X --csv <file>` | riconcilia un CSV movimenti col sovrano (sola lettura) |
+| `apply-quantities.js --profile X --set '<json>'` | scrive quantità/avg + arma il cooldown (`reconcileSells`) |
+
+> Tutte le scritture sulle quantità passano **dal motore** (`apply-quantities.js`), così un eventuale calo di quantità arma sempre il cooldown anti-frammentazione, esattamente come dopo un `sync-app`.
+
+Una **console web locale** (companion, repo separata, solo `localhost`) offre tutto questo da browser: griglia profili, analisi, upload CSV con riconciliazione, modifica portafoglio e creazione profili.
 
 ---
 
@@ -244,6 +292,20 @@ Il workflow `telegram-bot.yml` avvia il bot in 4 finestre da 5h con 30 min di ga
 | `CRYPTO_API_SECRET` | API secret Crypto.com Exchange |
 
 </details>
+
+---
+
+## 📨 Report push multi-utente
+
+Un **unico bot** (token condiviso) serve più utenti: ogni profilo ha il suo `TELEGRAM_CHAT_ID` nel proprio `.env`. L'**operatore** (default `tommaso`) è l'unico interattivo (`/analisi`); gli altri sono **push-only**.
+
+```bash
+node telegram-report-all.js --list    # elenca i clienti che riceverebbero il report
+node telegram-report-all.js --local   # dry run (stampa, non invia)
+node telegram-report-all.js           # invia a ogni cliente il proprio report
+```
+
+Cicla i profili **cliente** (esclude l'operatore) in sequenza e invia a ciascuno il suo report. **Guardia:** un `chat_id` duplicato tra due profili blocca l'invio. Gira **in locale** (i dati dei clienti sono gitignorati → non esistono su GitHub Actions): schedulabile con PM2, es. `pm2 start telegram-report-all.js --name crypto-report-all --no-autorestart --cron "0 7 * * *"`.
 
 ---
 

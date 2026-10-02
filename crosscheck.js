@@ -2,12 +2,12 @@ const paths = require('./src/paths');
 paths.boot();
 paths.loadEnv();
 const fs = require('fs');
-const readline = require('readline');
+const { parseCSV, calcBalances } = require('./src/csvLedger');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // crosscheck.js — AUDIT IN SOLA LETTURA
 //
-// Somma il master crypto_transactions.csv (stessa logica di update-from-csv.js)
+// Somma il master crypto_transactions.csv (logica condivisa in src/csvLedger.js)
 // e lo confronta con le quantita SOVRANE in data/portfolio.json, SENZA scrivere
 // nulla. Serve come riscontro incrociato dei saldi, non come sorgente.
 //
@@ -19,66 +19,6 @@ const readline = require('readline');
 
 const CSV_PATH = paths.csvPath();
 const PORTFOLIO_PATH = paths.portfolioPath();
-
-// Movimenti interni: spostano crypto tra wallet/earn/staking ma non cambiano il totale
-const INTERNAL_KINDS = new Set([
-  'crypto_earn_program_created',
-  'crypto_earn_program_withdrawn',
-  'finance.dpos.staking.crypto_wallet',
-  'finance.dpos.unstaking.crypto_wallet',
-  'finance.defi_staking.staking.crypto_wallet',
-  'finance.defi_staking.unstaking.crypto_wallet',
-  'finance.defi_lending.staking.crypto_wallet',
-]);
-
-const FIAT = new Set(['EUR', 'USD', 'GBP', 'USDT', 'USDC', '']);
-
-function parseCSVLine(line) {
-  const fields = [];
-  let current = '';
-  let inQuotes = false;
-  for (const ch of line) {
-    if (ch === '"') { inQuotes = !inQuotes; }
-    else if (ch === ',' && !inQuotes) { fields.push(current.trim()); current = ''; }
-    else { current += ch; }
-  }
-  fields.push(current.trim());
-  return fields;
-}
-
-async function parseCSV(filePath) {
-  const rl = readline.createInterface({ input: fs.createReadStream(filePath, 'utf-8'), crlfDelay: Infinity });
-  const rows = [];
-  let headers = null;
-  for await (const line of rl) {
-    if (!line.trim()) continue;
-    const fields = parseCSVLine(line);
-    if (!headers) { headers = fields; continue; }
-    const row = {};
-    headers.forEach((h, i) => { row[h] = (fields[i] ?? '').replace(/^"|"$/g, ''); });
-    rows.push(row);
-  }
-  return rows;
-}
-
-function calcBalances(rows) {
-  const balances = {};
-  for (const row of rows) {
-    const kind = row['Transaction Kind'];
-    if (INTERNAL_KINDS.has(kind)) continue;
-    const currency = row['Currency'];
-    const toCurrency = row['To Currency'];
-    const amount = parseFloat(row['Amount']);
-    const toAmount = parseFloat(row['To Amount']);
-    if (!FIAT.has(currency) && !isNaN(amount)) {
-      balances[currency] = (balances[currency] ?? 0) + amount;
-    }
-    if (!FIAT.has(toCurrency) && toCurrency !== currency && !isNaN(toAmount)) {
-      balances[toCurrency] = (balances[toCurrency] ?? 0) + toAmount;
-    }
-  }
-  return balances;
-}
 
 function fmt(n, dec = 8) {
   return Number(n).toFixed(dec);

@@ -43,4 +43,13 @@ async function sync(enginePath, profile) {
   return { ok: code === 0, log: (out + err).trim() };
 }
 
-module.exports = { report, sync };
+// Riconciliazione CSV ↔ sovrano (SOLA LETTURA): proposta delta, nessuna scrittura.
+async function reconcile(enginePath, profile, csvFile) {
+  const { code, out, err } = await run(enginePath, 'reconcile.js', ['--profile', profile, '--csv', csvFile, '--json']);
+  const data = extractJson(out);
+  if (data.error) throw new Error(data.error);
+  if (code !== 0) throw new Error(`reconcile uscito con codice ${code}: ${err.slice(-500)}`);
+  return data;
+}
+
+module.exports = { report, sync, reconcile };

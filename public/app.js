@@ -46,6 +46,8 @@ async function showDetail(name) {
   $('#home').hidden = true;
   $('#detail').hidden = false;
   $('#report-box').hidden = true;
+  $('#csv-box').hidden = true;
+  $('#csvfile').value = '';
   $('#d-error').hidden = true;
   $('#d-name').textContent = name;
   $('#d-meta').textContent = 'caricamento…';
@@ -111,8 +113,45 @@ function renderHistory(hist) {
   t.append(tb);
 }
 
+function renderReconcile(data) {
+  $('#csv-box').hidden = false;
+  const s = data.summary;
+  $('#csv-summary').textContent =
+    `${data.uploadedFile || 'master'} · ${s.uploadedRows} righe caricate · ${s.newRows} nuove · ${s.duplicatesSkipped} duplicati ignorati · master ${s.masterRows} righe`;
+
+  const addCell = a => a && a.total > EPS ? `+${num(a.total, 8)}` : '—';
+  const t = $('#csv-table');
+  t.textContent = '';
+  t.append(headRow(['Asset', 'Sovrano', 'CSV totale', 'Δ', '+Acquisti', '+Premi', 'Proposta', '']));
+  const tb = el('tbody');
+  for (const a of data.assets) {
+    const raise = a.direction === 'raise';
+    const badge = raise ? el('span', { className: 'badge pos' }, 'alza')
+                        : el('span', { className: 'badge' }, 'tieni');
+    const prop = el('td', {}, num(a.suggested, 8));
+    if (raise) prop.className = 'pos';
+    tb.append(el('tr', {},
+      td(a.symbol, 'l'), td(num(a.sovereign, 8)), td(num(a.csvSum, 8)),
+      tdCls((a.delta >= 0 ? '+' : '') + num(a.delta, 8), cls(a.delta)),
+      td(addCell(a.added?.purchases)), td(addCell(a.added?.rewards)),
+      prop, tdWrap(badge),
+    ));
+  }
+  t.append(tb);
+
+  const ph = $('#csv-phantom');
+  ph.textContent = '';
+  if (data.phantom?.length) {
+    ph.append(el('p', { className: 'muted', style: 'margin-top:12px' },
+      `Asset nel CSV ma non nel portafoglio (${data.phantom.length}) — dust/airdrop/nuovi: ` +
+      data.phantom.map(p => `${p.symbol} ${num(p.csvSum, 4)}`).join(' · ')));
+  }
+}
+const EPS = 1e-8;
+
 // helpers tabella
 const headRow = cols => { const tr = el('tr'); for (const c of cols) tr.append(el('th', {}, c)); return el('thead', {}, tr); };
+const tdWrap = node => { const d = el('td'); d.append(node); return d; };
 const td = (v, align) => el('td', align === 'l' ? { style: 'text-align:left' } : {}, String(v));
 const tdCls = (v, c) => { const d = el('td', {}, String(v)); if (c) d.className = c; return d; };
 
@@ -121,6 +160,7 @@ function busy(on) {
   $('#busy').hidden = !on;
   $('#btn-analyze').disabled = on;
   $('#btn-sync').disabled = on;
+  $('#btn-csv').disabled = on;
 }
 async function doAnalyze() {
   $('#d-error').hidden = true;
@@ -144,6 +184,20 @@ async function doSync() {
     if (!r.ok) showErr('Sync completato con avvisi:\n' + r.log.slice(-400));
   } catch (e) { showErr(e.message); } finally { busy(false); }
 }
+async function doCsv() {
+  const f = $('#csvfile').files[0];
+  if (!f) { showErr('Seleziona un file CSV da riconciliare.'); return; }
+  $('#d-error').hidden = true;
+  busy(true);
+  try {
+    const fd = new FormData();
+    fd.append('csv', f);
+    const r = await fetch(`/api/profiles/${current}/csv`, { method: 'POST', body: fd });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    renderReconcile(data);
+  } catch (e) { showErr(e.message); } finally { busy(false); }
+}
 function showErr(msg) { const n = $('#d-error'); n.textContent = msg; n.hidden = false; }
 
 // ---------- init ----------
@@ -151,4 +205,5 @@ $('#back').onclick = showHome;
 $('#title').onclick = showHome;
 $('#btn-analyze').onclick = doAnalyze;
 $('#btn-sync').onclick = doSync;
+$('#btn-csv').onclick = doCsv;
 showHome().catch(e => { $('#home-empty').hidden = false; $('#home-empty').textContent = 'Errore: ' + e.message; });

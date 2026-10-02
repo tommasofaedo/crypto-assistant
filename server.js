@@ -1,4 +1,7 @@
 const express = require('express');
+const multer = require('multer');
+const os = require('os');
+const fs = require('fs');
 const path = require('path');
 const { load } = require('./src/config');
 const profiles = require('./src/profiles');
@@ -8,6 +11,10 @@ const cfg = load();
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Upload CSV in una cartella temporanea del sistema (max 15 MB). Il file viene letto dal
+// motore (reconcile) e poi cancellato: la console non persiste nulla.
+const upload = multer({ dest: os.tmpdir(), limits: { fileSize: 15 * 1024 * 1024 } });
 
 // Lock per-profilo: una sola operazione di scrittura/run alla volta per profilo
 // (evita collisioni tra richieste e col bot PM2 che scrive lo stesso history.json).
@@ -56,6 +63,19 @@ app.post('/api/profiles/:p/sync', wrap(async (req, res) => {
   const name = profiles.assertExists(cfg.dataDir, req.params.p);
   const result = await withLock(name, () => engine.sync(cfg.enginePath, name));
   res.json({ ...result, portfolio: profiles.readPortfolio(cfg.dataDir, name) });
+}));
+
+// Riconciliazione CSV (SOLA LETTURA): upload → reconcile → proposta delta. Nessuna scrittura.
+app.post('/api/profiles/:p/csv', upload.single('csv'), wrap(async (req, res) => {
+  const name = profiles.assertExists(cfg.dataDir, req.params.p);
+  if (!req.file) throw Object.assign(new Error('Nessun file CSV caricato'), { status: 400 });
+  try {
+    const data = await withLock(name, () => engine.reconcile(cfg.enginePath, name, req.file.path));
+    data.uploadedFile = req.file.originalname; // mostra il nome reale, non quello temporaneo di multer
+    res.json(data);
+  } finally {
+    fs.unlink(req.file.path, () => {}); // il file temporaneo non viene mai conservato
+  }
 }));
 
 // Bind SOLO su loopback: la console non è mai raggiungibile dalla rete.

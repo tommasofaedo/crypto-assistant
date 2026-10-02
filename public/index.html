@@ -44,6 +44,17 @@
         <pre id="report" class="report"></pre>
       </div>
 
+      <h3>Riconciliazione CSV <span class="muted">— sola lettura, nessuna modifica applicata</span></h3>
+      <div class="controls">
+        <input type="file" id="csvfile" accept=".csv">
+        <button id="btn-csv" class="secondary">Riconcilia</button>
+      </div>
+      <div id="csv-box" hidden>
+        <p class="muted" id="csv-summary"></p>
+        <div class="table-wrap"><table id="csv-table"></table></div>
+        <div id="csv-phantom"></div>
+      </div>
+
       <h3>Storico recente</h3>
       <div class="table-wrap"><table id="hist-table"></table></div>
     </section>

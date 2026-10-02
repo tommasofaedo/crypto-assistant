@@ -8,6 +8,15 @@ echo   crypto-console
 echo ============================================
 echo.
 
+rem Se la console e' GIA' in esecuzione sulla 4319, apri solo il browser ed esci.
+netstat -ano | findstr ":4319" | findstr "LISTENING" >nul 2>&1
+if not errorlevel 1 (
+  echo La console e' gia' in esecuzione. Apro il browser...
+  start "" http://127.0.0.1:4319
+  timeout /t 2 >nul
+  exit /b
+)
+
 rem Prima volta: installa le dipendenze se mancano
 if not exist "node_modules" (
   echo Installo le dipendenze ^(solo la prima volta^)...

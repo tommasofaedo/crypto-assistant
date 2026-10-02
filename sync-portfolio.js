@@ -1,9 +1,10 @@
-require('dotenv').config();
+const paths = require('./src/paths');
+paths.boot();
+paths.loadEnv();
 const { privateRequest } = require('./src/cryptoClient');
 const fs = require('fs');
-const path = require('path');
 
-const PORTFOLIO_PATH = path.join(__dirname, 'data', 'portfolio.json');
+const PORTFOLIO_PATH = paths.portfolioPath();
 
 async function getSpotBalances() {
   const result = await privateRequest('private/get-account-summary', {});

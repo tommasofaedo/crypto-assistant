@@ -1,6 +1,7 @@
-require('dotenv').config();
+const paths = require('./src/paths');
+paths.boot();
+paths.loadEnv();
 const fs = require('fs');
-const path = require('path');
 const readline = require('readline');
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -16,8 +17,8 @@ const readline = require('readline');
 // basse; qui li vedi come delta, non li subisci.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CSV_PATH = path.join(__dirname, 'crypto_transactions.csv');
-const PORTFOLIO_PATH = path.join(__dirname, 'data', 'portfolio.json');
+const CSV_PATH = paths.csvPath();
+const PORTFOLIO_PATH = paths.portfolioPath();
 
 // Movimenti interni: spostano crypto tra wallet/earn/staking ma non cambiano il totale
 const INTERNAL_KINDS = new Set([
@@ -93,7 +94,7 @@ async function main() {
   const balances = calcBalances(rows);
   const portfolio = JSON.parse(fs.readFileSync(PORTFOLIO_PATH, 'utf-8'));
 
-  console.log('AUDIT crosscheck — CSV somma vs quantita sovrana (SOLA LETTURA)');
+  console.log(`AUDIT crosscheck [profilo: ${paths.getActiveProfile()}] — CSV somma vs quantita sovrana (SOLA LETTURA)`);
   console.log(`Master: ${rows.length} transazioni | Portfolio: ${portfolio.holdings.length} asset\n`);
   console.log('ASSET     CSV somma          sovrano (pf)       delta            delta%');
   console.log('─'.repeat(74));

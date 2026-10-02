@@ -14,12 +14,11 @@
  * l'override manuale di `lastSellDate` in data/sellState.json per precisione.
  */
 const fs = require('fs');
-const path = require('path');
+const { sellStatePath } = require('./paths');
 
-const SELL_STATE_PATH = path.join(__dirname, '..', 'data', 'sellState.json');
 const EPS = 1e-8;
 
-function loadSellStateFile(fp = SELL_STATE_PATH) {
+function loadSellStateFile(fp = sellStatePath()) {
   try {
     const parsed = JSON.parse(fs.readFileSync(fp, 'utf-8'));
     if (!parsed.sells) parsed.sells = {};
@@ -41,7 +40,7 @@ function loadSellStateFile(fp = SELL_STATE_PATH) {
  * @returns {{symbol:string, from:number, to:number, date:string}[]}
  */
 function reconcileSells(portfolio, opts = {}) {
-  const fp = opts.filePath ?? SELL_STATE_PATH;
+  const fp = opts.filePath ?? sellStatePath();
   const today = opts.nowDate ?? new Date().toISOString().slice(0, 10);
   const state = loadSellStateFile(fp);
   const sells = state.sells;
@@ -76,4 +75,4 @@ function reconcileSells(portfolio, opts = {}) {
   return detected;
 }
 
-module.exports = { reconcileSells, loadSellStateFile, SELL_STATE_PATH };
+module.exports = { reconcileSells, loadSellStateFile, sellStatePath };

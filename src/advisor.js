@@ -1,5 +1,5 @@
 const fs = require('fs');
-const path = require('path');
+const { watchlistPath } = require('./paths');
 const { getCandles, getMultiTimeframeCandles } = require('./historicalData');
 const {
   calcRSI, calcRSISeries, calcSMA, calcMACD, calcBollingerBands, calcVolumeScore,
@@ -15,8 +15,7 @@ const { analyzePortfolio } = require('./portfolioAnalyzer');
 
 function loadWatchlist() {
   try {
-    const fp = path.join(__dirname, '../data/watchlist.json');
-    return JSON.parse(fs.readFileSync(fp, 'utf-8')).assets ?? [];
+    return JSON.parse(fs.readFileSync(watchlistPath(), 'utf-8')).assets ?? [];
   } catch {
     return [];
   }

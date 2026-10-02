@@ -1,8 +1,8 @@
 require('dotenv').config();
 const fs = require('fs');
-const path = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
 const { loadHistory } = require('./historyManager');
+const { strategyPath, sellStatePath } = require('./paths');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -206,8 +206,7 @@ function loadStrategy() {
     targets: { BTC: 0.30, ETH: 0.25 }, altMaxWeight: 0.15, coreBudgetShare: 0.5,
   };
   try {
-    const fp = path.join(__dirname, '../data/strategy.json');
-    return { ...fallback, ...JSON.parse(fs.readFileSync(fp, 'utf-8')) };
+    return { ...fallback, ...JSON.parse(fs.readFileSync(strategyPath(), 'utf-8')) };
   } catch {
     return fallback;
   }
@@ -216,8 +215,7 @@ function loadStrategy() {
 // Registro delle vendite REALI eseguite (data/sellState.json) → { SYMBOL: { lastSellDate } }.
 function loadSellState() {
   try {
-    const fp = path.join(__dirname, '../data/sellState.json');
-    return JSON.parse(fs.readFileSync(fp, 'utf-8')).sells ?? {};
+    return JSON.parse(fs.readFileSync(sellStatePath(), 'utf-8')).sells ?? {};
   } catch {
     return {};
   }

@@ -1,12 +1,11 @@
 const fs   = require('fs');
-const path = require('path');
+const { historyPath } = require('./paths');
 
-const HISTORY_PATH = path.join(__dirname, '../data/history.json');
 const MAX_ENTRIES  = 2000; // ~100 analisi × 13 asset
 
 function loadHistory() {
   try {
-    return JSON.parse(fs.readFileSync(HISTORY_PATH, 'utf-8'));
+    return JSON.parse(fs.readFileSync(historyPath(), 'utf-8'));
   } catch {
     return [];
   }
@@ -31,7 +30,7 @@ function saveSnapshot(analyses, watchlistAnalyses = []) {
     const history = loadHistory();
     history.push(...entries);
     const trimmed = history.length > MAX_ENTRIES ? history.slice(-MAX_ENTRIES) : history;
-    fs.writeFileSync(HISTORY_PATH, JSON.stringify(trimmed, null, 2));
+    fs.writeFileSync(historyPath(), JSON.stringify(trimmed, null, 2));
   } catch (err) {
     console.warn('[history] Errore salvataggio:', err.message);
   }

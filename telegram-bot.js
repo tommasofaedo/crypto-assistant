@@ -1,4 +1,6 @@
-require('dotenv').config();
+const paths = require('./src/paths');
+paths.boot();
+paths.loadEnv();
 const axios = require('axios');
 const { runAdvisor } = require('./src/advisor');
 const { getTelegramAdvice } = require('./src/aiAdvisor');
@@ -77,7 +79,7 @@ async function handleAnalysis(chatId, budget) {
       hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome',
     });
 
-    let snap = `<b>CRYPTO REPORT — ${date}</b>\n\n`;
+    let snap = `<b>CRYPTO REPORT [${paths.getActiveProfile()}] — ${date}</b>\n\n`;
     snap += `Fear &amp; Greed: <b>${fearGreed.value}/100</b> (${fearGreed.label})\n`;
     snap += `Portafoglio: <b>€${fmt(portfolio.totalValueEur)}</b>\n\n`;
 

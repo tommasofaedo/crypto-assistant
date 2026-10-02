@@ -1,4 +1,6 @@
-require('dotenv').config();
+const paths = require('./src/paths');
+paths.boot();
+paths.loadEnv();
 const { runAdvisor } = require('./src/advisor');
 const { getTelegramAdvice } = require('./src/aiAdvisor');
 
@@ -21,7 +23,7 @@ async function main() {
     .reduce((s, h) => s + h.allocationPct, 0);
 
   console.log('══════════════════════════════════════════════════════');
-  console.log(`CRYPTO REPORT — ${date}`);
+  console.log(`CRYPTO REPORT [${paths.getActiveProfile()}] — ${date}`);
   console.log('══════════════════════════════════════════════════════');
 
   console.log(`\nPORTAFOGLIO`);

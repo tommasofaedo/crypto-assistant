@@ -1,4 +1,6 @@
-require('dotenv').config();
+const paths = require('./src/paths');
+paths.boot();      // estrae --profile da argv (prima del parsing del budget) e lo fissa
+paths.loadEnv();
 const { runAdvisor } = require('./src/advisor');
 const { getAIAdvice } = require('./src/aiAdvisor');
 
@@ -32,6 +34,7 @@ async function main() {
 
   console.log('\n════════════════════════════════════════════════════════');
   console.log('   CRYPTO ADVISOR AGENT — Analisi + Consulenza AI');
+  console.log(`   Profilo: ${paths.getActiveProfile()}`);
   console.log(`   ${new Date().toLocaleString('it-IT')}`);
   console.log(`   Budget disponibile: €${fmt(budgetEur)}`);
   console.log('════════════════════════════════════════════════════════\n');

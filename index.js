@@ -1,3 +1,5 @@
+const paths = require('./src/paths');
+paths.boot();  // fissa il profilo attivo (--profile/PROFILE, o auto se unico)
 const { runAdvisor } = require('./src/advisor');
 
 const SIGNAL_LABEL = {
@@ -19,6 +21,7 @@ function fmt(n, dec = 2) { return n != null ? n.toFixed(dec) : 'n/d'; }
 async function main() {
   console.log('\n════════════════════════════════════════════════════════');
   console.log('   CRYPTO ADVISOR — Analisi & Raccomandazioni');
+  console.log(`   Profilo: ${paths.getActiveProfile()}`);
   console.log(`   ${new Date().toLocaleString('it-IT')}`);
   console.log('════════════════════════════════════════════════════════\n');
 

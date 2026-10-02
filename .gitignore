@@ -8,6 +8,14 @@ bot-error.log
 crypto_transactions.csv
 storico_cryptocom/
 status.png
+# Profili multi-utente: dati finanziari privati di ALTRI utenti — mai nel repo pubblico.
+# Il profilo "tommaso" resta tracciato (comportamento storico); gli altri vengono esclusi.
+data/profiles/*/portfolio.json
+data/profiles/*/history.json
+data/profiles/*/sellState.json
+!data/profiles/tommaso/portfolio.json
+!data/profiles/tommaso/history.json
+!data/profiles/tommaso/sellState.json
 # File di lavoro locali (skill/graphify/scratch) — non parte del progetto
 SKILL.md
 graphify-out/

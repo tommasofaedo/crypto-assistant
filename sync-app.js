@@ -18,14 +18,16 @@
  * Legge le credenziali CDC_API_KEY / CDC_API_SECRET dal .env, tramite lo script ufficiale
  * della skill crypto-com-app (npx tsx .../account.ts balances all).
  */
-require('dotenv').config();
+const paths = require('./src/paths');
+paths.boot();          // fissa il profilo attivo da --profile/PROFILE (o auto se unico)
+paths.loadEnv();       // credenziali del profilo (.env del profilo) + default di root
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execSync } = require('child_process');
 const { reconcileSells } = require('./src/sellStateManager');
 
-const PORTFOLIO_PATH = path.join(__dirname, 'data', 'portfolio.json');
+const PORTFOLIO_PATH = paths.portfolioPath();
 const SKILL_DIR = process.env.CDC_APP_SKILL_DIR
   || path.join(os.homedir(), '.claude', 'skills', 'crypto-com-app');
 const ACCOUNT_SCRIPT = path.join(SKILL_DIR, 'scripts', 'account.ts');
@@ -65,7 +67,7 @@ function readAppWallet() {
 }
 
 function main() {
-  console.log('Lettura wallet Crypto.com APP (solo lettura)...\n');
+  console.log(`[profilo: ${paths.getActiveProfile()}] Lettura wallet Crypto.com APP (solo lettura)...\n`);
   const { map, allocation } = readAppWallet();
 
   const portfolio = JSON.parse(fs.readFileSync(PORTFOLIO_PATH, 'utf-8'));

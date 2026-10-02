@@ -40,9 +40,13 @@ const row = (k, v) => el('div', { className: 'row' }, el('span', {}, k), el('spa
 
 // ---------- DETTAGLIO ----------
 let current = null;
+let currentPf = null;     // ultimo portafoglio caricato
+let editingPf = false;    // modalità modifica portafoglio
+let lastReconcile = null; // ultimo risultato di riconciliazione
 
 async function showDetail(name) {
   current = name;
+  editingPf = false;
   $('#home').hidden = true;
   $('#detail').hidden = false;
   $('#report-box').hidden = true;
@@ -52,27 +56,65 @@ async function showDetail(name) {
   $('#d-name').textContent = name;
   $('#d-meta').textContent = 'caricamento…';
   const { portfolio, history } = await api('/api/profiles/' + name);
+  currentPf = portfolio;
   $('#d-meta').textContent = portfolio
     ? `${portfolio.holdings.length} asset · aggiornato ${portfolio.updatedAt || '—'} · fonte ${portfolio.source || '—'}`
     : 'portfolio.json non leggibile';
-  renderPortfolioTable(portfolio);
+  togglePfEdit(false);
   renderHistory(history);
 }
 
 function renderPortfolioTable(pf) {
   const t = $('#pf-table');
   t.textContent = '';
-  $('#pf-note').textContent = '(quantità sovrane)';
-  if (!pf || !pf.holdings?.length) { t.append(el('caption', {}, 'nessun holding')); return; }
-  t.append(headRow(['Asset', 'Quantità', 'Disponibile', 'Avg €', 'Valore istantanea']));
+  $('#pf-note').textContent = editingPf ? '(modifica: quantità e avg sono scrivibili)' : '(quantità sovrane)';
+  if (!editingPf && (!pf || !pf.holdings?.length)) { t.append(el('caption', {}, 'nessun holding')); return; }
+
+  if (!editingPf) {
+    t.append(headRow(['Asset', 'Quantità', 'Disponibile', 'Avg €', 'Valore istantanea']));
+    const tb = el('tbody');
+    for (const h of (pf.holdings || [])) {
+      tb.append(el('tr', {},
+        td(h.symbol, 'l'), td(num(h.quantity, 8)), td(num(h.availableForTrading ?? h.quantity, 8)),
+        td(h.avgBuyPrice != null ? num(h.avgBuyPrice, 2) : '—'), td(eur(h.valueAtSnapshot)),
+      ));
+    }
+    t.append(tb);
+    return;
+  }
+
+  // modalità modifica: input per quantità e avg, + riga per aggiungere un asset
+  t.append(headRow(['Asset', 'Quantità', 'Avg €', '']));
   const tb = el('tbody');
-  for (const h of pf.holdings) {
+  for (const h of (pf.holdings || [])) {
     tb.append(el('tr', {},
-      td(h.symbol, 'l'), td(num(h.quantity, 8)), td(num(h.availableForTrading ?? h.quantity, 8)),
-      td(h.avgBuyPrice != null ? num(h.avgBuyPrice, 2) : '—'), td(eur(h.valueAtSnapshot)),
+      td(h.symbol, 'l'),
+      tdWrap(numInput(`q-${h.symbol}`, h.quantity)),
+      tdWrap(numInput(`a-${h.symbol}`, h.avgBuyPrice)),
+      td(''),
     ));
   }
+  // riga nuovo asset
+  tb.append(el('tr', {},
+    tdWrap(Object.assign(document.createElement('input'), { id: 'new-sym', className: 'sym', placeholder: 'SIMB' })),
+    tdWrap(numInput('new-q', null, 'quantità')),
+    tdWrap(numInput('new-a', null, 'avg €')),
+    td('nuovo'),
+  ));
   t.append(tb);
+}
+
+function numInput(id, val, ph) {
+  return Object.assign(document.createElement('input'),
+    { id, type: 'number', step: 'any', value: val != null ? val : '', placeholder: ph || '' });
+}
+
+function togglePfEdit(on) {
+  editingPf = on;
+  $('#btn-edit-pf').hidden = on;
+  $('#btn-save-pf').hidden = !on;
+  $('#btn-cancel-pf').hidden = !on;
+  renderPortfolioTable(currentPf);
 }
 
 function renderAnalysis(data) {
@@ -114,6 +156,7 @@ function renderHistory(hist) {
 }
 
 function renderReconcile(data) {
+  lastReconcile = data;
   $('#csv-box').hidden = false;
   const s = data.summary;
   $('#csv-summary').textContent =
@@ -128,13 +171,11 @@ function renderReconcile(data) {
     const raise = a.direction === 'raise';
     const badge = raise ? el('span', { className: 'badge pos' }, 'alza')
                         : el('span', { className: 'badge' }, 'tieni');
-    const prop = el('td', {}, num(a.suggested, 8));
-    if (raise) prop.className = 'pos';
     tb.append(el('tr', {},
       td(a.symbol, 'l'), td(num(a.sovereign, 8)), td(num(a.csvSum, 8)),
       tdCls((a.delta >= 0 ? '+' : '') + num(a.delta, 8), cls(a.delta)),
       td(addCell(a.added?.purchases)), td(addCell(a.added?.rewards)),
-      prop, tdWrap(badge),
+      tdWrap(numInput(`rec-${a.symbol}`, a.suggested)), tdWrap(badge),
     ));
   }
   t.append(tb);
@@ -142,9 +183,16 @@ function renderReconcile(data) {
   const ph = $('#csv-phantom');
   ph.textContent = '';
   if (data.phantom?.length) {
-    ph.append(el('p', { className: 'muted', style: 'margin-top:12px' },
-      `Asset nel CSV ma non nel portafoglio (${data.phantom.length}) — dust/airdrop/nuovi: ` +
-      data.phantom.map(p => `${p.symbol} ${num(p.csvSum, 4)}`).join(' · ')));
+    ph.append(el('p', { className: 'muted', style: 'margin:12px 0 6px' },
+      `Asset nel CSV ma non nel portafoglio (${data.phantom.length}) — dust/airdrop/nuovi. Metti una quantità per aggiungerli:`));
+    const pt = el('table');
+    pt.append(headRow(['Asset', 'CSV', 'Quantità da aggiungere']));
+    const ptb = el('tbody');
+    for (const p of data.phantom) {
+      ptb.append(el('tr', {}, td(p.symbol, 'l'), td(num(p.csvSum, 6)), tdWrap(numInput(`recph-${p.symbol}`, null, '0 = ignora'))));
+    }
+    pt.append(ptb);
+    ph.append(el('div', { className: 'table-wrap' }, pt));
   }
 }
 const EPS = 1e-8;
@@ -158,9 +206,9 @@ const tdCls = (v, c) => { const d = el('td', {}, String(v)); if (c) d.className 
 // ---------- azioni ----------
 function busy(on) {
   $('#busy').hidden = !on;
-  $('#btn-analyze').disabled = on;
-  $('#btn-sync').disabled = on;
-  $('#btn-csv').disabled = on;
+  for (const id of ['#btn-analyze', '#btn-sync', '#btn-csv', '#btn-apply-csv', '#btn-new', '#btn-save-pf']) {
+    const n = $(id); if (n) n.disabled = on;
+  }
 }
 async function doAnalyze() {
   $('#d-error').hidden = true;
@@ -180,7 +228,8 @@ async function doSync() {
   busy(true);
   try {
     const r = await api(`/api/profiles/${current}/sync`, { method: 'POST' });
-    renderPortfolioTable(r.portfolio);
+    if (r.portfolio) currentPf = r.portfolio;
+    renderPortfolioTable(currentPf);
     if (!r.ok) showErr('Sync completato con avvisi:\n' + r.log.slice(-400));
   } catch (e) { showErr(e.message); } finally { busy(false); }
 }
@@ -200,10 +249,97 @@ async function doCsv() {
 }
 function showErr(msg) { const n = $('#d-error'); n.textContent = msg; n.hidden = false; }
 
+const val = id => { const n = $('#' + id); return n ? parseFloat(n.value) : NaN; };
+
+// Scrittura centralizzata: conferma → POST /apply → ricarica. updates = { SYM: n | {quantity,avgBuyPrice} }.
+async function applyUpdates(updates, title) {
+  const keys = Object.keys(updates);
+  if (!keys.length) { showErr('Nessuna modifica da applicare.'); return; }
+  const lines = keys.map(s => {
+    const u = updates[s];
+    return typeof u === 'number' ? `  ${s} → quantità ${u}` :
+      `  ${s} → ${['quantity' in u ? 'q ' + u.quantity : '', 'avgBuyPrice' in u ? 'avg ' + u.avgBuyPrice : ''].filter(Boolean).join(', ')}`;
+  });
+  if (!confirm(`${title}\n\n${lines.join('\n')}\n\nScrivo queste modifiche sul profilo ${current}?`)) return;
+  $('#d-error').hidden = true;
+  busy(true);
+  try {
+    const data = await api(`/api/profiles/${current}/apply`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ updates }),
+    });
+    const msg = [];
+    if (data.created?.length) msg.push('creati: ' + data.created.map(c => c.symbol).join(', '));
+    if (data.applied?.length) msg.push('aggiornati: ' + data.applied.map(a => a.symbol).join(', '));
+    if (data.detectedSells?.length) msg.push('cali rilevati (cooldown armato): ' + data.detectedSells.map(s => s.symbol).join(', '));
+    await showDetail(current);
+    alert('Fatto.\n' + (msg.join('\n') || 'nessuna variazione effettiva'));
+  } catch (e) { showErr(e.message); } finally { busy(false); }
+}
+
+// Applica le quantità proposte dalla riconciliazione (+ phantom con quantità > 0).
+function doApplyCsv() {
+  if (!lastReconcile) return;
+  const updates = {};
+  for (const a of lastReconcile.assets) {
+    const v = val('rec-' + a.symbol);
+    if (!isNaN(v) && Math.abs(v - a.sovereign) > EPS) updates[a.symbol] = v;
+  }
+  for (const p of (lastReconcile.phantom || [])) {
+    const v = val('recph-' + p.symbol);
+    if (!isNaN(v) && v > EPS) updates[p.symbol] = v;
+  }
+  applyUpdates(updates, 'Applica quantità dalla riconciliazione CSV');
+}
+
+// Salva le modifiche manuali al portafoglio (quantità/avg + eventuale nuovo asset).
+function doSavePf() {
+  const updates = {};
+  for (const h of (currentPf.holdings || [])) {
+    const u = {};
+    const q = val('q-' + h.symbol);
+    if (!isNaN(q) && Math.abs(q - h.quantity) > EPS) u.quantity = q;
+    const aEl = $('#a-' + h.symbol);
+    if (aEl && aEl.value !== '') {
+      const a = parseFloat(aEl.value);
+      if (!isNaN(a) && a !== h.avgBuyPrice) u.avgBuyPrice = a;
+    }
+    if (Object.keys(u).length) updates[h.symbol] = u;
+  }
+  const sym = ($('#new-sym').value || '').trim().toUpperCase();
+  if (sym) {
+    const q = val('new-q');
+    if (isNaN(q) || q <= 0) { showErr('Per il nuovo asset serve una quantità > 0.'); return; }
+    const u = { quantity: q };
+    const a = val('new-a');
+    if (!isNaN(a)) u.avgBuyPrice = a;
+    updates[sym] = u;
+  }
+  applyUpdates(updates, 'Salva modifiche al portafoglio');
+}
+
+async function doNewProfile() {
+  const name = (prompt('Nome del nuovo profilo (lettere, numeri, _ e -):') || '').trim();
+  if (!name) return;
+  try {
+    const data = await api('/api/profiles', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    alert(`Profilo "${data.created}" creato.\n\nProssimi passi:\n- ${data.nextSteps.join('\n- ')}`);
+    await showDetail(data.created);
+  } catch (e) { alert('Errore: ' + e.message); }
+}
+
 // ---------- init ----------
 $('#back').onclick = showHome;
 $('#title').onclick = showHome;
 $('#btn-analyze').onclick = doAnalyze;
 $('#btn-sync').onclick = doSync;
 $('#btn-csv').onclick = doCsv;
+$('#btn-apply-csv').onclick = doApplyCsv;
+$('#btn-new').onclick = doNewProfile;
+$('#btn-edit-pf').onclick = () => togglePfEdit(true);
+$('#btn-cancel-pf').onclick = () => togglePfEdit(false);
+$('#btn-save-pf').onclick = doSavePf;
 showHome().catch(e => { $('#home-empty').hidden = false; $('#home-empty').textContent = 'Errore: ' + e.message; });

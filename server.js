@@ -78,6 +78,25 @@ app.post('/api/profiles/:p/csv', upload.single('csv'), wrap(async (req, res) => 
   }
 }));
 
+// SCRITTURA: applica quantità/avgBuyPrice confermate (passa dal motore → reconcileSells).
+app.post('/api/profiles/:p/apply', wrap(async (req, res) => {
+  const name = profiles.assertExists(cfg.dataDir, req.params.p);
+  const updates = req.body?.updates;
+  if (!updates || typeof updates !== 'object' || !Object.keys(updates).length) {
+    throw Object.assign(new Error('Nessuna modifica da applicare'), { status: 400 });
+  }
+  const data = await withLock(name, () => engine.applyQuantities(cfg.enginePath, name, updates));
+  res.json(data);
+}));
+
+// SCRITTURA: crea un nuovo profilo.
+app.post('/api/profiles', wrap(async (req, res) => {
+  const name = (req.body?.name || '').trim();
+  if (!name) throw Object.assign(new Error('Nome profilo mancante'), { status: 400 });
+  const data = await engine.createProfile(cfg.enginePath, name);
+  res.json(data);
+}));
+
 // Bind SOLO su loopback: la console non è mai raggiungibile dalla rete.
 app.listen(cfg.port, '127.0.0.1', () => {
   console.log(`crypto-console → http://127.0.0.1:${cfg.port}`);

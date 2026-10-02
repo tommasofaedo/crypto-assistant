@@ -15,6 +15,9 @@
   <main>
     <!-- HOME: griglia profili -->
     <section id="home">
+      <div class="home-head">
+        <button id="btn-new">+ Nuovo profilo</button>
+      </div>
       <div id="profiles" class="grid"></div>
       <p id="home-empty" class="muted" hidden>Nessun profilo trovato in data/profiles/.</p>
     </section>
@@ -34,7 +37,11 @@
       </div>
       <p id="d-error" class="error" hidden></p>
 
-      <h3>Portafoglio <span class="muted" id="pf-note"></span></h3>
+      <h3>Portafoglio <span class="muted" id="pf-note"></span>
+        <button id="btn-edit-pf" class="mini secondary">Modifica</button>
+        <button id="btn-save-pf" class="mini" hidden>Salva</button>
+        <button id="btn-cancel-pf" class="mini secondary" hidden>Annulla</button>
+      </h3>
       <div class="table-wrap"><table id="pf-table"></table></div>
 
       <div id="report-box" hidden>
@@ -53,6 +60,10 @@
         <p class="muted" id="csv-summary"></p>
         <div class="table-wrap"><table id="csv-table"></table></div>
         <div id="csv-phantom"></div>
+        <div class="controls">
+          <button id="btn-apply-csv">Applica quantità</button>
+          <span class="muted">modifica i valori in colonna "Proposta" prima di applicare</span>
+        </div>
       </div>
 
       <h3>Storico recente</h3>

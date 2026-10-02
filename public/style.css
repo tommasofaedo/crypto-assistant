@@ -56,3 +56,9 @@ tr:last-child td { border-bottom: none; }
 .sig-BUY, .sig-STRONG.BUY { color: var(--green); }
 .badge { font-size: 12px; padding: 2px 7px; border-radius: 5px; background: var(--panel2); border: 1px solid var(--line); }
 .report { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; white-space: pre-wrap; word-break: break-word; font: 13px/1.6 ui-monospace, Menlo, Consolas, monospace; }
+
+.home-head { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+button.mini { font-size: 12px; padding: 4px 10px; margin-left: 8px; vertical-align: middle; }
+td input, th input { width: 120px; background: var(--panel2); border: 1px solid var(--line); color: var(--text); border-radius: 5px; padding: 4px 6px; text-align: right; font-variant-numeric: tabular-nums; }
+td input.sym { width: 70px; text-align: left; text-transform: uppercase; }
+tr.changed td { background: #1b2430; }

@@ -52,4 +52,23 @@ async function reconcile(enginePath, profile, csvFile) {
   return data;
 }
 
-module.exports = { report, sync, reconcile };
+// SCRITTURA: applica quantità/avgBuyPrice (+ reconcileSells nel motore). updates = { SYM: {quantity,avgBuyPrice} | n }.
+async function applyQuantities(enginePath, profile, updates) {
+  const { code, out, err } = await run(enginePath, 'apply-quantities.js',
+    ['--profile', profile, '--set', JSON.stringify(updates), '--json']);
+  const data = extractJson(out);
+  if (data.error) throw new Error(data.error);
+  if (code !== 0) throw new Error(`apply-quantities uscito con codice ${code}: ${err.slice(-500)}`);
+  return data;
+}
+
+// SCRITTURA: crea un nuovo profilo (cartella + portfolio vuoto + .env template).
+async function createProfile(enginePath, name) {
+  const { code, out, err } = await run(enginePath, 'create-profile.js', ['--name', name, '--json']);
+  const data = extractJson(out);
+  if (data.error) throw new Error(data.error);
+  if (code !== 0) throw new Error(`create-profile uscito con codice ${code}: ${err.slice(-500)}`);
+  return data;
+}
+
+module.exports = { report, sync, reconcile, applyQuantities, createProfile };

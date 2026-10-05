@@ -37,6 +37,14 @@
       </div>
       <p id="d-error" class="error" hidden></p>
 
+      <h3>Telegram <span class="muted">— destinatario dei report push</span></h3>
+      <div class="controls">
+        <label>Chat id <input type="text" id="tg-chat" inputmode="numeric" placeholder="es. 123456789"></label>
+        <label>Budget push € <input type="number" id="tg-budget" value="0" min="0" step="5"></label>
+        <button id="btn-save-tg" class="secondary">Salva Telegram</button>
+        <span class="muted" id="tg-note"></span>
+      </div>
+
       <h3>Portafoglio <span class="muted" id="pf-note"></span>
         <button id="btn-edit-pf" class="mini secondary">Modifica</button>
         <button id="btn-save-pf" class="mini" hidden>Salva</button>

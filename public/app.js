@@ -62,6 +62,40 @@ async function showDetail(name) {
     : 'portfolio.json non leggibile';
   togglePfEdit(false);
   renderHistory(history);
+  loadTelegram(name);
+}
+
+// Carica chat_id/budget Telegram del profilo nel pannello (fallo in background: un errore qui
+// non deve impedire di vedere il resto del profilo).
+async function loadTelegram(name) {
+  $('#tg-chat').value = '';
+  $('#tg-budget').value = 0;
+  $('#tg-note').textContent = '…';
+  try {
+    const t = await api('/api/profiles/' + name + '/telegram');
+    if (name !== current) return; // l'utente ha già cambiato profilo
+    $('#tg-chat').value = t.chatId || '';
+    $('#tg-budget').value = t.budget || 0;
+    $('#tg-note').textContent = t.chatId ? 'chat configurata · riceve i report push' : 'nessuna chat: non riceve push';
+  } catch (e) {
+    if (name === current) $('#tg-note').textContent = 'impostazioni non leggibili: ' + e.message;
+  }
+}
+
+async function doSaveTelegram() {
+  $('#d-error').hidden = true;
+  const chatId = ($('#tg-chat').value || '').trim();
+  const budget = Number($('#tg-budget').value) || 0;
+  busy(true);
+  try {
+    const t = await api(`/api/profiles/${current}/telegram`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId, budget }),
+    });
+    $('#tg-chat').value = t.chatId || '';
+    $('#tg-budget').value = t.budget || 0;
+    $('#tg-note').textContent = t.chatId ? 'salvato · riceve i report push' : 'salvato · nessuna chat: non riceve push';
+  } catch (e) { showErr(e.message); } finally { busy(false); }
 }
 
 function renderPortfolioTable(pf) {
@@ -206,7 +240,7 @@ const tdCls = (v, c) => { const d = el('td', {}, String(v)); if (c) d.className 
 // ---------- azioni ----------
 function busy(on) {
   $('#busy').hidden = !on;
-  for (const id of ['#btn-analyze', '#btn-sync', '#btn-csv', '#btn-apply-csv', '#btn-new', '#btn-save-pf']) {
+  for (const id of ['#btn-analyze', '#btn-sync', '#btn-csv', '#btn-apply-csv', '#btn-new', '#btn-save-pf', '#btn-save-tg']) {
     const n = $(id); if (n) n.disabled = on;
   }
 }
@@ -342,4 +376,5 @@ $('#btn-new').onclick = doNewProfile;
 $('#btn-edit-pf').onclick = () => togglePfEdit(true);
 $('#btn-cancel-pf').onclick = () => togglePfEdit(false);
 $('#btn-save-pf').onclick = doSavePf;
+$('#btn-save-tg').onclick = doSaveTelegram;
 showHome().catch(e => { $('#home-empty').hidden = false; $('#home-empty').textContent = 'Errore: ' + e.message; });

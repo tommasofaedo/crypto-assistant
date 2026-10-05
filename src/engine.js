@@ -62,6 +62,25 @@ async function applyQuantities(enginePath, profile, updates) {
   return data;
 }
 
+// Legge le impostazioni Telegram del profilo (chat_id, budget) dal suo .env.
+async function telegramGet(enginePath, profile) {
+  const { code, out, err } = await run(enginePath, 'set-telegram.js', ['--profile', profile, '--get', '--json']);
+  const data = extractJson(out);
+  if (data.error) throw new Error(data.error);
+  if (code !== 0) throw new Error(`set-telegram uscito con codice ${code}: ${err.slice(-500)}`);
+  return data;
+}
+
+// SCRITTURA: aggiorna chat_id/budget Telegram del profilo nel suo .env (non tocca le API key).
+async function telegramSet(enginePath, profile, settings) {
+  const { code, out, err } = await run(enginePath, 'set-telegram.js',
+    ['--profile', profile, '--set', JSON.stringify(settings), '--json']);
+  const data = extractJson(out);
+  if (data.error) throw new Error(data.error);
+  if (code !== 0) throw new Error(`set-telegram uscito con codice ${code}: ${err.slice(-500)}`);
+  return data;
+}
+
 // SCRITTURA: crea un nuovo profilo (cartella + portfolio vuoto + .env template).
 async function createProfile(enginePath, name) {
   const { code, out, err } = await run(enginePath, 'create-profile.js', ['--name', name, '--json']);
@@ -71,4 +90,4 @@ async function createProfile(enginePath, name) {
   return data;
 }
 
-module.exports = { report, sync, reconcile, applyQuantities, createProfile };
+module.exports = { report, sync, reconcile, applyQuantities, telegramGet, telegramSet, createProfile };

@@ -89,6 +89,22 @@ app.post('/api/profiles/:p/apply', wrap(async (req, res) => {
   res.json(data);
 }));
 
+// Impostazioni Telegram del profilo: chat_id della chat a cui mandare i report + budget push.
+app.get('/api/profiles/:p/telegram', wrap(async (req, res) => {
+  const name = profiles.assertExists(cfg.dataDir, req.params.p);
+  res.json(await engine.telegramGet(cfg.enginePath, name));
+}));
+
+// SCRITTURA: aggiorna chat_id/budget Telegram del profilo (non tocca le API key nel .env).
+app.post('/api/profiles/:p/telegram', wrap(async (req, res) => {
+  const name = profiles.assertExists(cfg.dataDir, req.params.p);
+  const settings = {};
+  if (req.body?.chatId !== undefined) settings.chatId = req.body.chatId;
+  if (req.body?.budget !== undefined) settings.budget = req.body.budget;
+  const data = await withLock(name, () => engine.telegramSet(cfg.enginePath, name, settings));
+  res.json(data);
+}));
+
 // SCRITTURA: crea un nuovo profilo.
 app.post('/api/profiles', wrap(async (req, res) => {
   const name = (req.body?.name || '').trim();

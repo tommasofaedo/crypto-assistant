@@ -21,3 +21,6 @@ SKILL.md
 graphify-out/
 skills.txt.txt
 token_chat.txt
+
+# Sotto-progetto con repo git proprio (tenuto separato)
+/crypto-console/

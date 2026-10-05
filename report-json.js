@@ -6,7 +6,7 @@
  * lo estrae ignorando i log di libreria che finiscono su stdout.
  *
  * Uso: node report-json.js --profile <nome> [budget] [--no-ai]
- *   --no-ai : salta la nota Marco Ferretti (nessuna chiamata Anthropic → nessun costo).
+ *   --no-ai : salta la nota Hari Seldon (nessuna chiamata Anthropic → nessun costo).
  */
 const paths = require('./src/paths');
 paths.boot();      // fissa il profilo da --profile (già rimosso da argv) prima del budget

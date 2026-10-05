@@ -43,7 +43,7 @@ function buildSnapshotMessage({ portfolio, fearGreed, watchlistAnalyses = [], bu
   return m;
 }
 
-// Messaggio 2: raccomandazione Marco Ferretti.
+// Messaggio 2: raccomandazione Hari Seldon.
 function buildRecoMessage(aiText) {
   return `<b>MARCO FERRETTI — Raccomandazioni</b>\n\n${aiText}`;
 }

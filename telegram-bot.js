@@ -69,7 +69,7 @@ async function handleAnalysis(chatId, budget) {
     const { portfolio, fearGreed, globalMetrics, analyses, watchlistAnalyses } = await runAdvisor();
 
     await editProg(
-      `<b>Analisi in corso...</b>\nBudget: <b>€${fmt(budget)}</b>\n\n<i>Generazione raccomandazioni Marco Ferretti...</i>`
+      `<b>Analisi in corso...</b>\nBudget: <b>€${fmt(budget)}</b>\n\n<i>Generazione raccomandazioni Hari Seldon...</i>`
     );
 
     const aiText = await getTelegramAdvice(portfolio, fearGreed, analyses, budget, globalMetrics, watchlistAnalyses);
@@ -131,7 +131,7 @@ async function processUpdate(update) {
 
   if (lower === '/start' || lower === '/help') {
     await send(chatId,
-      `<b>Crypto Assistant — Marco Ferretti</b>\n\n` +
+      `<b>Crypto Assistant — Hari Seldon</b>\n\n` +
       `<b>Comandi:</b>\n` +
       `• <code>/analisi</code> — analisi senza budget\n` +
       `• <code>/analisi 100</code> — analisi con €100 disponibili\n` +

@@ -1,6 +1,6 @@
 <div align="center">
 
-# 📊 Crypto Assistant — Marco Ferretti
+# 📊 Crypto Assistant — Hari Seldon
 
 ### Il tuo consulente crypto quantitativo, in italiano
 

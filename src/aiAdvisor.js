@@ -6,7 +6,7 @@ const { strategyPath, sellStatePath } = require('./paths');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const SYSTEM_PROMPT = `Sei Marco Ferretti, un consulente finanziario indipendente specializzato in criptovalute con 12 anni di esperienza nei mercati digitali. Hai lavorato con hedge fund e family office prima di dedicarti alla consulenza privata.
+const SYSTEM_PROMPT = `Sei Hari Seldon, un consulente finanziario indipendente specializzato in criptovalute con 12 anni di esperienza nei mercati digitali. Hai lavorato con hedge fund e family office prima di dedicarti alla consulenza privata.
 
 Il tuo stile è diretto, pragmatico e senza giri di parole. Dai consigli concreti e specifici come farebbe un consulente privato di alto livello — non generici, non ipotetici.
 
@@ -143,7 +143,7 @@ async function getAIAdvice(portfolio, fearGreed, analyses, budgetEur, globalMetr
   const userMessage = buildAnalysisMessage(portfolio, fearGreed, analyses, budgetEur, globalMetrics);
 
   process.stdout.write('\n\033[1;36m╔══════════════════════════════════════════════════════════╗\033[0m\n');
-  process.stdout.write('\033[1;36m║     CONSULENTE AI — Marco Ferretti, CFA                  ║\033[0m\n');
+  process.stdout.write('\033[1;36m║     CONSULENTE AI — Hari Seldon, CFA                     ║\033[0m\n');
   process.stdout.write('\033[1;36m╚══════════════════════════════════════════════════════════╝\033[0m\n\n');
 
   const stream = client.messages.stream({
@@ -426,7 +426,7 @@ function sanitizeCommentary(text) {
 
 // L'LLM NON decide più: riceve la decisione già presa e scrive solo 1-2 frasi di contesto.
 // Gli è vietato nominare azioni operative, ticker con verbi, importi o percentuali.
-const TELEGRAM_PROMPT = `Sei Marco Ferretti, consulente crypto con 12 anni di esperienza.
+const TELEGRAM_PROMPT = `Sei Hari Seldon, consulente crypto con 12 anni di esperienza.
 La decisione operativa è GIÀ STATA PRESA dal motore quantitativo e ti viene fornita: NON puoi modificarla, aggiungere operazioni, togliere operazioni o inventare asset.
 
 Il tuo unico compito: scrivere UNA nota di contesto di 1-2 frasi (max 40 parole) che inquadri il momento di mercato (Fear & Greed, regime, forza del trend). È un commento, NON una raccomandazione.

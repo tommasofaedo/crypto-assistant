@@ -1,4 +1,4 @@
-# Roadmap — Marco Ferretti
+# Roadmap — Hari Seldon
 
 Miglioramenti pianificati, in ordine di priorità.
 
@@ -116,7 +116,7 @@ Le candele Crypto.com includono già il volume — dati già presenti, ora utili
 ### Support/Resistance automatici (03/07/2026)
 `calcSupportResistance()` e `scoreSupportResistance()` in `indicators.js`. Range -8/+8.
 Calcola pivot high/low dagli ultimi 200gg e determina il supporto/resistenza più vicino al prezzo attuale.
-Marco ora sa se il prezzo è in zona di rimbalzo o di rifiuto storico.
+Seldon ora sa se il prezzo è in zona di rimbalzo o di rifiuto storico.
 
 ### CoinGecko community sentiment (#2) (03/07/2026)
 `newsSentiment.js` reimplementato con `/coins/{id}` CoinGecko. Range -5/+5.
@@ -126,7 +126,7 @@ Restituisce `sentiment_votes_up_percentage` per ogni asset. Cache in-memory 1h.
 ### Storico raccomandazioni (#4) (03/07/2026)
 Nuovo `src/historyManager.js`. Ogni analisi salva in `data/history.json`:
 data, symbol, signal, score, RSI, prezzo EUR, MACD histogram, OBV trend, isWatchlist.
-Permette di misurare l'accuratezza di Marco nel tempo e calibrare i pesi.
+Permette di misurare l'accuratezza di Seldon nel tempo e calibrare i pesi.
 
 ### P&L per asset — codice pronto (03/07/2026)
 `portfolioAnalyzer.js` calcolava già `pnlEur`/`pnlPct` quando `avgBuyPrice > 0`.
@@ -157,7 +157,7 @@ e cachare il risultato per 1h per non sovraccaricare il free tier.
 ---
 
 ### 3. Allerta proattiva su Telegram
-**Impatto:** alto — Marco diventa proattivo, non solo reattivo  
+**Impatto:** alto — Seldon diventa proattivo, non solo reattivo  
 **Sforzo:** basso
 
 Aggiungere un checker periodico (es. ogni 4h nel `daily-report.yml`) che esegue l'analisi

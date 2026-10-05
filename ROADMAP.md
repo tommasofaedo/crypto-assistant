@@ -6,6 +6,26 @@ Miglioramenti pianificati, in ordine di priorità.
 
 ## ✅ Completati
 
+### Fix riconciliazione CSV: da somma assoluta a incrementale (05/10/2026)
+`reconcile.js` proponeva `suggested = csvSum` (somma dell'**intera storia** CSV, union
+master+upload) quando `csvSum > sovrano`. Ma CSV e quantità sovrana **divergono di natura**
+(buchi export, BTC da exchange esterni, staked invisibile allo SPOT, premi compound): quando
+la somma storica supera il sovrano per deriva accumulata, proponeva un **raise spurio** scollegato
+dalle transazioni nuove. **Incidente 05/10**: la console aveva scritto SOL 11.956 (= csvSum) invece
+di 11.940 (= sovrano +0.008 di premi reali), e lo stesso su ETH/BTC/CRO.
+
+**Fix:** riconciliazione **incrementale**. Considera solo le righe con data **> `portfolio.updatedAt`**
+(cutoff dell'ultima riconciliazione) e propone `suggested = sovrano + somma righe nuove`
+(acquisti+premi; interni esclusi). Dedup per **chiave stabile** (`timestamp|kind|currency|amount|…`,
+non più JSON intero che si rompe sulla precisione dei Native Amount tra ri-esportazioni). `csvSum`
+resta nel payload solo come dato informativo. **Idempotente** (ri-eseguire dopo l'apply → tutto
+`hold`), **mai abbassa** (vendite = pipeline sell). Verificato end-to-end sulla catena reale
+reconcile→apply-quantities (profilo usa-e-getta: unstaking e righe ≤cutoff correttamente esclusi)
++ dati di `tommaso` ricalcolati dai delta 30/09→05/10 e confermati live da `sync-app`.
+
+**Limite residuo noto:** né `reconcile.js` né `apply-quantities.js` toccano `availableForTrading`
+→ lo spostamento da **unstaking** (staked→spot) resta a `sync-app.js` (saldi live App) o manuale.
+
 ### Chat_id/budget Telegram per profilo dalla console + consulente rinominato Hari Seldon (05/10/2026)
 **Campo chat_id editabile dalla console:** nuovo `set-telegram.js` (motore) legge/scrive **solo**
 `TELEGRAM_CHAT_ID` e `TELEGRAM_BUDGET` nel `.env` del profilo (API key e `TELEGRAM_INTERACTIVE`
@@ -272,7 +292,7 @@ comportamentale (`feedback_no_handauthored_sell`) in un blocco tecnico.
 - **Alert quando cambia la modalità**: notifica quando il motore passa da conservativo a tilt-balanced (o viceversa) — è un cambio di regime che vale la pena segnalare.
 - **Semplificare i due runner del bot (emerso 24/08)**: la soluzione attuale (PM2 primario / GHA subordinato via `BOT_ROLE`) è corretta ma non la più semplice possibile. Se il PC è spento solo di rado, valutare se togliere del tutto il bot interattivo GHA (tenendo solo PM2 always-on + il report automatico delle 9:00) — meno complessità di coordinamento a costo della copertura interattiva notturna a PC spento. Decisione di Tommaso, non urgente.
 - **Guardia anti-frammentazione solo nel motore (emerso 23/09/2026)**: cooldown/re-arm/cap-al-vendibile vivono TUTTI in `aiAdvisor.js` (`sellGate`), quindi una reco di vendita prodotta fuori dal motore li bypassa. → promosso a elemento d'azione (#10 in "Da fare"); regola comportamentale già in memoria `feedback_no_handauthored_sell`.
-- **Merge del CSV nel master (emerso 02/10)**: `reconcile.js` unisce il CSV caricato al master solo **in memoria** (per la proposta), non lo persiste → ricaricando lo stesso export le righe risultano di nuovo "nuove" (il dedup evita comunque doppi conteggi). Valutare un `--merge` che scriva il master aggiornato in fase di apply.
+- **Merge del CSV nel master (emerso 02/10, rivisto 05/10)**: `reconcile.js` non persiste più la union col master — dal fix incrementale (05/10) la proposta dipende solo dal cutoff `portfolio.updatedAt` e dalle righe nuove, quindi il master serve ormai solo al `csvSum` informativo e ai phantom. Valutare comunque un `--merge` che aggiorni il master in fase di apply, così `crosscheck.js` (che somma il master) resta allineato nel tempo.
 - **Risposta cortese del bot ai clienti (emerso 02/10)**: oggi il bot interattivo ignora le chat non-operatore. Per i clienti push-only si potrebbe rispondere con un messaggio fisso ("ricevi i report automatici") invece del silenzio.
 - **Onboarding chat_id cliente (emerso 02/10)**: ✅ **parziale (05/10)** — la **scrittura** del `chat_id`/budget nel `.env` del profilo è ora fatta dalla console (pannello Telegram → `set-telegram.js`). Resta manuale solo la **cattura** del `chat_id` di un nuovo cliente (deve scrivere al bot, poi si legge dagli update). Valutare un comando/endpoint che lo catturi in automatico.
 

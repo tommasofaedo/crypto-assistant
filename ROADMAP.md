@@ -6,6 +6,22 @@ Miglioramenti pianificati, in ordine di priorità.
 
 ## ✅ Completati
 
+### Chat_id/budget Telegram per profilo dalla console + consulente rinominato Hari Seldon (05/10/2026)
+**Campo chat_id editabile dalla console:** nuovo `set-telegram.js` (motore) legge/scrive **solo**
+`TELEGRAM_CHAT_ID` e `TELEGRAM_BUDGET` nel `.env` del profilo (API key e `TELEGRAM_INTERACTIVE`
+intatte), invocato come sottoprocesso al pari di `apply-quantities`/`create-profile`. **Guardia
+anti-duplicato** sul chat_id (stessa regola di `telegram-report-all.js`, anticipata al salvataggio)
++ validazione formato. Console: endpoint `GET`/`POST /api/profiles/:p/telegram` (POST dietro il
+lock per-profilo) e pannello **"Telegram"** nel dettaglio profilo (chat_id + budget push, con stato
+"riceve / non riceve push"). Copre la parte "scrivere il chat_id nel `.env`" dell'onboarding cliente
+(resta manuale solo la **cattura** del chat_id). La console continua a **non** scrivere i file
+direttamente: passa sempre dal motore.
+
+**Rinomina consulente AI: Marco Ferretti → Hari Seldon** (il matematico della *Fondazione* di
+Asimov che predice col calcolo statistico — calza col consulente che dà raccomandazioni
+probabilistiche): rinomina **solo testuale** in prompt di sistema, banner, report Telegram, UI
+console e docs; allineato il bordo del riquadro ASCII in `aiAdvisor.js` (nome più corto di 3 char).
+
 ### Multi-profilo, console operativa e Telegram multi-utente (02/10/2026)
 Da richiesta: gestire **più portafogli** (utenti diversi su Crypto.com) con le **stesse** impostazioni di rischio/valutazione, **senza mai confonderli**.
 
@@ -258,7 +274,7 @@ comportamentale (`feedback_no_handauthored_sell`) in un blocco tecnico.
 - **Guardia anti-frammentazione solo nel motore (emerso 23/09/2026)**: cooldown/re-arm/cap-al-vendibile vivono TUTTI in `aiAdvisor.js` (`sellGate`), quindi una reco di vendita prodotta fuori dal motore li bypassa. → promosso a elemento d'azione (#10 in "Da fare"); regola comportamentale già in memoria `feedback_no_handauthored_sell`.
 - **Merge del CSV nel master (emerso 02/10)**: `reconcile.js` unisce il CSV caricato al master solo **in memoria** (per la proposta), non lo persiste → ricaricando lo stesso export le righe risultano di nuovo "nuove" (il dedup evita comunque doppi conteggi). Valutare un `--merge` che scriva il master aggiornato in fase di apply.
 - **Risposta cortese del bot ai clienti (emerso 02/10)**: oggi il bot interattivo ignora le chat non-operatore. Per i clienti push-only si potrebbe rispondere con un messaggio fisso ("ricevi i report automatici") invece del silenzio.
-- **Onboarding chat_id cliente (emerso 02/10)**: ricavare il `chat_id` di un nuovo cliente è manuale (deve scrivere al bot, poi si legge dagli update). Valutare un comando/endpoint che lo catturi e lo scriva nel `.env` del profilo.
+- **Onboarding chat_id cliente (emerso 02/10)**: ✅ **parziale (05/10)** — la **scrittura** del `chat_id`/budget nel `.env` del profilo è ora fatta dalla console (pannello Telegram → `set-telegram.js`). Resta manuale solo la **cattura** del `chat_id` di un nuovo cliente (deve scrivere al bot, poi si legge dagli update). Valutare un comando/endpoint che lo catturi in automatico.
 
 ## 💡 Idee future (non pianificate)
 

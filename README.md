@@ -31,8 +31,8 @@ npm start                             # http://127.0.0.1:4319
 ## Cosa fa (F1 + F2 + F3)
 - **Home**: griglia profili (valore all'ultima istantanea, data dell'ultima run) + **Nuovo profilo**.
 - **Dettaglio profilo**:
-  - **Analizza** — run fresca del motore → tabella segnali/score/RSI + raccomandazione Marco
-    Ferretti (spunta "con nota" accende/spegne la chiamata AI).
+  - **Analizza** — run fresca del motore → tabella segnali/score/RSI + raccomandazione Hari
+    Seldon (spunta "con nota" accende/spegne la chiamata AI).
   - **Sync saldi** — legge i saldi live dall'App e aggiorna `availableForTrading`.
   - **Portafoglio** con **Modifica/Salva** inline: quantità, avg, aggiunta di un asset.
   - **Riconciliazione CSV** — upload di un export movimenti → proposta delle quantità

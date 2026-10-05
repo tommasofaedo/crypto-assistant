@@ -169,7 +169,7 @@ function renderAnalysis(data) {
     ));
   }
   t.append(tb);
-  $('#report').textContent = data.report || '(nota Marco Ferretti disattivata)';
+  $('#report').textContent = data.report || '(nota Hari Seldon disattivata)';
 }
 
 function renderHistory(hist) {

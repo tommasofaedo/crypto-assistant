@@ -5861,5 +5861,148 @@
     "macdHist": -0.012788,
     "obvTrend": null,
     "isWatchlist": true
+  },
+  {
+    "date": "2026-10-02T09:19:34.828Z",
+    "symbol": "AAVE",
+    "signal": "STRONG BUY",
+    "score": 53,
+    "rsi": 72.8,
+    "priceEur": 161.0812,
+    "macdHist": 2.856825,
+    "obvTrend": "up",
+    "isWatchlist": false
+  },
+  {
+    "date": "2026-10-02T09:19:34.828Z",
+    "symbol": "SOL",
+    "signal": "BUY",
+    "score": 49,
+    "rsi": 65.9,
+    "priceEur": 108.01,
+    "macdHist": -0.124739,
+    "obvTrend": null,
+    "isWatchlist": false
+  },
+  {
+    "date": "2026-10-02T09:19:34.828Z",
+    "symbol": "CRO",
+    "signal": "BUY",
+    "score": 49,
+    "rsi": 62,
+    "priceEur": 0.061,
+    "macdHist": 0.000368,
+    "obvTrend": null,
+    "isWatchlist": false
+  },
+  {
+    "date": "2026-10-02T09:19:34.828Z",
+    "symbol": "LINK",
+    "signal": "BUY",
+    "score": 43,
+    "rsi": 63.2,
+    "priceEur": 12.7642,
+    "macdHist": 0.099088,
+    "obvTrend": null,
+    "isWatchlist": false
+  },
+  {
+    "date": "2026-10-02T09:19:34.828Z",
+    "symbol": "UNI",
+    "signal": "BUY",
+    "score": 42,
+    "rsi": 61.6,
+    "priceEur": 8.0057,
+    "macdHist": -0.138846,
+    "obvTrend": null,
+    "isWatchlist": false
+  },
+  {
+    "date": "2026-10-02T09:19:34.828Z",
+    "symbol": "ETH",
+    "signal": "BUY",
+    "score": 37,
+    "rsi": 67.4,
+    "priceEur": 2435.3094,
+    "macdHist": -5.5408,
+    "obvTrend": null,
+    "isWatchlist": false
+  },
+  {
+    "date": "2026-10-02T09:19:34.828Z",
+    "symbol": "BTC",
+    "signal": "BUY",
+    "score": 33,
+    "rsi": 68,
+    "priceEur": 76294.7649,
+    "macdHist": -34.288214,
+    "obvTrend": null,
+    "isWatchlist": false
+  },
+  {
+    "date": "2026-10-02T09:19:34.828Z",
+    "symbol": "XRP",
+    "signal": "BUY",
+    "score": 33,
+    "rsi": 60.3,
+    "priceEur": 1.3621,
+    "macdHist": -0.00236,
+    "obvTrend": null,
+    "isWatchlist": false
+  },
+  {
+    "date": "2026-10-02T09:19:34.828Z",
+    "symbol": "AVAX",
+    "signal": "STRONG BUY",
+    "score": 63,
+    "rsi": 65.9,
+    "priceEur": 9.8291,
+    "macdHist": 0.018472,
+    "obvTrend": null,
+    "isWatchlist": true
+  },
+  {
+    "date": "2026-10-02T09:19:34.828Z",
+    "symbol": "NEAR",
+    "signal": "STRONG BUY",
+    "score": 60,
+    "rsi": 65.8,
+    "priceEur": 4.3536,
+    "macdHist": 0.010771,
+    "obvTrend": null,
+    "isWatchlist": true
+  },
+  {
+    "date": "2026-10-02T09:19:34.828Z",
+    "symbol": "ADA",
+    "signal": "STRONG BUY",
+    "score": 59,
+    "rsi": 63.8,
+    "priceEur": 0.2265,
+    "macdHist": 0.000334,
+    "obvTrend": null,
+    "isWatchlist": true
+  },
+  {
+    "date": "2026-10-02T09:19:34.828Z",
+    "symbol": "DOT",
+    "signal": "BUY",
+    "score": 35,
+    "rsi": 59.1,
+    "priceEur": 1.0817,
+    "macdHist": -0.004249,
+    "obvTrend": null,
+    "isWatchlist": true
+  },
+  {
+    "date": "2026-10-02T09:19:34.828Z",
+    "symbol": "ATOM",
+    "signal": "BUY",
+    "score": 25,
+    "rsi": 52.8,
+    "priceEur": 1.5401,
+    "macdHist": -0.01215,
+    "obvTrend": null,
+    "isWatchlist": true
   }
 ]

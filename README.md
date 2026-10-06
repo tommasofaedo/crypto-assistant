@@ -41,7 +41,7 @@ Tre canali, una sola logica: **CLI locale** · **Bot Telegram** · **Report auto
 - 🔁 **Coerenza garantita**: locale e Telegram usano la stessa funzione — raccomandazione identica su ogni canale
 - 👥 **Multi-profilo**: più portafogli (utenti diversi) con le **stesse** impostazioni di rischio — stato isolato per profilo (`data/profiles/<nome>/`), selezione esplicita (`--profile`), **nessuna contaminazione** tra portafogli
 - 📥 **Riconciliazione CSV**: confronta i movimenti esportati da Crypto.com con le quantità sovrane e propone gli aggiornamenti (acquisti/premi consolidati) — senza mai abbassare un saldo per via dei buchi di export
-- 🖥️ **Console web locale** (companion, repo separata): gestione profili, consigli, upload CSV e storico da browser — solo `localhost`
+- 🖥️ **Console web locale** (sottocartella `crypto-console/`): gestione profili con anagrafica/tag, consigli, upload CSV, storico, valutazione P&L e valori live da browser — solo `localhost`
 
 ---
 
@@ -242,7 +242,7 @@ node sync-app.js --profile mario             # saldi live App del profilo
 
 > Tutte le scritture sulle quantità passano **dal motore** (`apply-quantities.js`), così un eventuale calo di quantità arma sempre il cooldown anti-frammentazione, esattamente come dopo un `sync-app`.
 
-Una **console web locale** (companion, repo separata, solo `localhost`) offre tutto questo da browser: griglia profili, analisi, upload CSV con riconciliazione, modifica portafoglio e creazione profili.
+Una **console web locale** (sottocartella `crypto-console/`, solo `localhost`) offre tutto questo da browser: griglia profili con ricerca/filtro per tag e P&L per cliente, analisi, upload CSV con riconciliazione, modifica portafoglio, anagrafica/tag (`meta.json`), valutazione P&L e **valori live**, creazione profili da modale.
 
 ---
 

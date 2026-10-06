@@ -6,6 +6,38 @@ Miglioramenti pianificati, in ordine di priorità.
 
 ## ✅ Completati
 
+### Monorepo + console multi-cliente: anagrafica, valutazione P&L, valori live (06/10/2026)
+Lavoro sulla console per renderla scalabile all'aumentare dei clienti (ognuno un profilo con la sua
+chat Telegram), mantenendo il principio **stesse regole per tutti, numeri di ognuno separati**.
+
+**Monorepo:** la console, prima in un **repo git separato** annidato in `crypto-console/`, è stata
+**assorbita nel repo del motore** (branch `main`) via subtree-merge preservando la storia (merge
+`f867e87`, doppia parentela; tag di rollback `pre-merge-console`). Resta una sottocartella col suo
+`package.json`: runtime invariato (`enginePath: ".."`).
+
+**Anagrafica profilo (`meta.json` + `set-meta.js`):** nuovo file per profilo con nome leggibile,
+nota, tag, flag archiviato — separato dai dati finanziari. `set-meta.js` fa get/set con merge
+parziale (gemello di `set-telegram.js`); `meta.json` è gitignorato per i clienti (il displayName è
+PII), tracciato per `tommaso`. Opzionale: creato alla prima scrittura, nessuna migrazione.
+
+**Console Home scalabile:** ricerca (nome/slug/tag), filtro per tag, ordinamento (nome/valore/ultima
+run), archiviati nascosti, badge Telegram per chi ha la chat configurata, e **P&L d'istantanea per
+cliente** su ogni card. Nuovo profilo via **modale unico** (nome + slug auto-suggerito + tag + chat).
+
+**Valutazione guadagno/perdita per cliente:** riga + colonna P&L nel Portafoglio (sull'ultima
+istantanea, senza rete: `valueAtSnapshot − avgBuyPrice*quantità`) e nell'intestazione Analisi (live).
+Pulsante **"Aggiorna valori"** (nuovo `value-json.js`, leggero: solo prezzi, niente indicatori/AI) fa
+passare la tabella Portafoglio in modalità live (Prezzo/Valore/P&L ora) col confronto vs l'istantanea.
+**Storico** ora a richiesta in un modale. Commit console `904b2d2`→`f42b2f2`.
+
+**Verifica isolamento (nessuna modifica, solo audit):** confermato nel codice che analisi e push
+Telegram sono per-profilo (portfolio/sellState/history/.env isolati, loop sequenziale col chat_id del
+profilo) e i criteri sono condivisi/identici (scoring hardcoded in `advisor.js`,
+`strategy.json`/`watchlist.json` in `data/` condivisa). L'unica leva per-cliente è `TELEGRAM_BUDGET`
+(importo, non criterio).
+
+**Comandi JSON nuovi (shellati dalla console):** `set-meta.js`, `value-json.js`.
+
 ### Push cloud ai clienti (a PC spento) + auto-pubblicazione portafogli (06/10/2026)
 I report dei profili CLIENTE giravano **solo in locale** (`telegram-report-all.js`) perché i loro
 dati sono gitignorati dal repo pubblico → se il PC era spento alle 09:00 non partiva nulla. Richiesta:
@@ -358,8 +390,9 @@ al cliente.)
 - **On-chain data**: Glassnode o Nansen free tier per flussi whale/exchange inflow
 - **Correlazione BTC**: se BTC scende >3% in 1h, invia alert automatico su tutto il portafoglio
 - ~~**Aggiornamento automatico portfolio.json**~~: ✅ fatto 11/08/2026 (`sync-app.js`) — vedi Completati
-- ~~**Dashboard web**~~: ✅ coperta (02/10) dalla **console web locale** (repo separata,
-  `localhost`): profili, consigli, storico, upload CSV + riconciliazione, scritture. Non su
-  server pubblico (è operatore-only e maneggia dati di terzi + credenziali)
+- ~~**Dashboard web**~~: ✅ coperta (02/10) dalla **console web locale** (dal 06/10 nel monorepo,
+  sottocartella `crypto-console/`; `localhost`): profili, consigli, storico, upload CSV +
+  riconciliazione, scritture, anagrafica/tag, valutazione P&L e valori live. Non su server pubblico
+  (è operatore-only e maneggia dati di terzi + credenziali)
 - **Backtesting**: testare la strategia RSI+MACD+Bollinger su dati storici per validare
   i parametri prima di usarli sul portafoglio reale

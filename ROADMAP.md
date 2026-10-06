@@ -6,6 +6,35 @@ Miglioramenti pianificati, in ordine di priorità.
 
 ## ✅ Completati
 
+### Push cloud ai clienti (a PC spento) + auto-pubblicazione portafogli (06/10/2026)
+I report dei profili CLIENTE giravano **solo in locale** (`telegram-report-all.js`) perché i loro
+dati sono gitignorati dal repo pubblico → se il PC era spento alle 09:00 non partiva nulla. Richiesta:
+farli arrivare **a PC spento come per l'operatore**, senza esporre i dati dei clienti sul repo pubblico.
+
+**Soluzione — repo PRIVATO separato `tommasofaedo/crypto-assistant-clients`:** contiene
+`profiles/<nome>/{portfolio.json,.env}` dei clienti + un workflow `clients-report.yml` (cron
+`0 7 * * *` = 09:00, **stesso orario** del report operatore). Il workflow fa il checkout del repo
+privato, **clona il motore pubblico** a runtime (sempre ultima versione), inietta `profiles/*` in
+`engine/data/profiles/`, `npm install`, poi `node telegram-report-all.js` (che esclude l'operatore
+e manda a ogni cliente snapshot + reco col SUO chat_id/budget). `workflow_dispatch` con input
+`dry_run: true` → aggiunge `--local` per collaudare senza inviare. Secrets sul repo privato:
+`TELEGRAM_BOT_TOKEN`/`ANTHROPIC_API_KEY`/`CRYPTO_API_KEY`/`CRYPTO_API_SECRET` (NO `TELEGRAM_CHAT_ID`:
+per i clienti arriva dal profilo). Collaudato end-to-end: dry-run OK + invio reale confermato ricevuto.
+
+**Auto-pubblicazione (nuovo `src/clientPublish.js`):** `sync-app.js` e `apply-quantities.js`, dopo
+la scrittura, chiamano `publishClientProfile()` → quando cambia il portafoglio di un CLIENTE fa
+copy+commit+push del **solo `portfolio.json`** nel clone locale `../crypto-assistant-clients`
+(override `CLIENTS_REPO_DIR`), così il cloud non resta sui numeri vecchi. Esclude l'operatore e i
+profili `_*`; **non fatale** (clone mancante/offline/push ko → avviso su stderr, il sync non si
+blocca); logga su stderr per non sporcare il protocollo JSON marker della console; NON pubblica il
+`.env` (le chiavi CDC non vanno nel repo clienti). Vale anche quando il sync parte dalla **web app**
+(la console shella questi script). Resta manuale solo l'aggiunta di un NUOVO cliente / cambio
+chat_id-budget (modifica `profiles/<nome>/.env` nel repo privato + push). Commit motore `9b0c80f`.
+
+**Primo cliente attivo: `ilariarosolen`** — portafoglio seminato dal suo CSV (BTC/ETH/SOL);
+`avgBuyPrice` STIMATO e `availableForTrading` provvisorio (0 su staked), da rifinire con le sue
+chiavi CDC + `sync-app`. `storico_ILARIA/` aggiunto al `.gitignore` (CSV cliente, mai nel repo pubblico).
+
 ### Fix riconciliazione CSV: da somma assoluta a incrementale (05/10/2026)
 `reconcile.js` proponeva `suggested = csvSum` (somma dell'**intera storia** CSV, union
 master+upload) quando `csvSum > sovrano`. Ma CSV e quantità sovrana **divergono di natura**
@@ -66,9 +95,10 @@ portafogli). F1 consigli + storico, F2 upload CSV + riconciliazione (proposta), 
 
 **Telegram multi-utente:** un bot solo (token condiviso), un `TELEGRAM_CHAT_ID` per profilo.
 L'operatore (`OPERATOR_PROFILE`, default `tommaso`) è interattivo + report GHA (invariato); i
-clienti sono **push-only** via nuovo `telegram-report-all.js` (gira in **locale** perché i dati
-clienti sono gitignorati → non esistono su GHA; esclude l'operatore; **guardia chat_id
-duplicato**; `src/telegramReport.js` condiviso con `telegram-report.js`). `telegram-bot.js` e
+clienti sono **push-only** via nuovo `telegram-report-all.js` (esclude l'operatore; **guardia chat_id
+duplicato**; `src/telegramReport.js` condiviso con `telegram-report.js`). _Nota (06/10): girava solo
+in locale perché i dati clienti sono gitignorati dal repo pubblico; ora gira anche nel **cloud a PC
+spento** tramite il repo privato `crypto-assistant-clients` — vedi Completati 06/10._ `telegram-bot.js` e
 `telegram-report.js` ora selezionano l'operatore in modo **esplicito** → non vanno più in
 ambiguità quando esistono profili cliente.
 

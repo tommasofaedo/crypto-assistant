@@ -1,0 +1,105 @@
+/* Yaru per il web. Classi scritte a mano dal tema GTK4 di ubuntu/yaru@7f18973e
+   (gtk/src/default/gtk-4.0/_common.scss, _drawing.scss, _tweaks.scss).
+   Richiede tokens.css. I nomi delle varianti riprendono le classi di stile GTK. */
+
+.yaru { color: var(--fg_color); background: var(--bg_color); font-family: var(--font-sans); font-size: 14.667px; line-height: 1.4; }
+.yaru a { color: var(--link_color); }
+.yaru a:visited { color: var(--link_visited_color); }
+.dim-label { opacity: var(--dim_label_opacity); }
+
+/* Button */
+.yaru-button { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 34px; margin: 0; padding: var(--button_padding_y) var(--text_button_padding_x); border: 1px solid var(--borders_color); border-radius: var(--button_radius); background: var(--button_bg_color); color: var(--fg_color); font: inherit; white-space: nowrap; cursor: pointer; outline: 0 solid transparent; outline-offset: 4px; transition: all 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+.yaru-button:hover { background: var(--button_hover_bg_color); }
+.yaru-button:active, .yaru-button[aria-pressed="true"] { background: var(--button_active_bg_color); transition-duration: 50ms; }
+.yaru-button:focus-visible { outline: 2px solid var(--focus_border_color); outline-offset: -2px; }
+.yaru-button.image-button { min-width: 34px; padding: var(--button_padding_y); }
+.yaru-button.flat { border-color: transparent; background: transparent; }
+.yaru-button.flat:hover { background: var(--button_flat_hover_bg_color); }
+.yaru-button.suggested-action { border-color: var(--accent_borders_color); background: var(--accent_bg_color); color: var(--accent_fg_color); }
+.yaru-button.suggested-action:hover { background: var(--accent_hover_bg_color); }
+.yaru-button.suggested-action:active { background: var(--accent_active_bg_color); }
+.yaru-button.destructive-action { border-color: var(--destructive_borders_color); background: var(--destructive_color); color: var(--white); }
+.yaru-button.destructive-action:hover { background: var(--destructive_hover_color); }
+.yaru-button.destructive-action:active { background: var(--destructive_active_color); }
+.yaru-button:disabled, .yaru-button:disabled:hover { border-color: var(--borders_color); background: var(--insensitive_bg_color); color: var(--insensitive_fg_color); cursor: default; }
+.yaru-linked { display: inline-flex; }
+.yaru-linked > .yaru-button { border-radius: 0; margin-left: -1px; min-width: 100px; }
+.yaru-linked > .yaru-button:first-child { margin-left: 0; border-top-left-radius: var(--button_radius); border-bottom-left-radius: var(--button_radius); }
+.yaru-linked > .yaru-button:last-child { border-top-right-radius: var(--button_radius); border-bottom-right-radius: var(--button_radius); }
+.yaru-linked > .yaru-button:focus-visible, .yaru-linked > .yaru-button[aria-pressed="true"] { position: relative; }
+
+/* Entry */
+.yaru-entry { box-sizing: border-box; display: flex; align-items: center; gap: var(--entry_spacing); min-height: 34px; padding: 0 var(--entry_padding_x); border: 1px solid var(--borders_color); border-radius: var(--button_radius); background: var(--base_color); color: var(--text_color); outline: 0 solid transparent; transition: all 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+.yaru-entry:focus-within { outline: 2px solid var(--focus_border_color); outline-offset: -2px; }
+.yaru-entry > input { flex: 1; min-width: 0; margin: 0; padding: 0; border: 0; outline: 0; background: transparent; color: inherit; font: inherit; }
+.yaru-entry > input::placeholder { color: var(--fg_color); opacity: var(--dim_label_opacity); }
+.yaru-entry > svg { flex: none; color: var(--fg_color); }
+.yaru-entry.error { border-color: var(--error_color); }
+.yaru-entry.disabled { background: var(--insensitive_bg_color); color: var(--insensitive_fg_color); }
+
+/* Switch, Checkbox, Radio: input nativi ridisegnati */
+.yaru-switch, .yaru-check, .yaru-radio { appearance: none; -webkit-appearance: none; box-sizing: border-box; flex: none; margin: 0; cursor: pointer; outline: 0 solid transparent; transition: all 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+.yaru-switch { display: inline-flex; align-items: center; width: 46px; height: 24px; padding: 1px; border: 1px solid var(--switch_trough_color); border-radius: var(--switch_radius); background: var(--switch_trough_color); }
+.yaru-switch::before { content: ""; width: var(--switch_slider_size); height: var(--switch_slider_size); border-radius: 50%; background: var(--slider_color); box-shadow: var(--switch_slider_shadow); transition: transform 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+.yaru-switch:checked { border-color: var(--checkradio_bg_color); background: var(--checkradio_bg_color); }
+.yaru-switch:checked::before { transform: translateX(22px); }
+.yaru-switch:focus-visible { outline: 2px solid var(--focus_border_color); outline-offset: 2px; }
+.yaru-check, .yaru-radio { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border: 1px solid var(--borders_color); background: var(--check_bg_color); }
+.yaru-check { border-radius: var(--check_radius); }
+.yaru-radio { border-radius: 50%; }
+.yaru-check:checked, .yaru-radio:checked { border-color: var(--checkradio_borders_color); background: var(--checkradio_bg_color); }
+.yaru-check:checked::before { content: ""; width: 4px; height: 8px; margin-top: -2px; border: solid var(--white); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.yaru-radio:checked::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--white); }
+.yaru-check:focus-visible, .yaru-radio:focus-visible { outline: 2px solid var(--focus_border_color); outline-offset: 2px; }
+.yaru-switch:disabled, .yaru-check:disabled, .yaru-radio:disabled { border-color: var(--borders_color); background: var(--insensitive_bg_color); cursor: default; }
+.yaru-choice { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+
+/* Scale: input range. Il riempimento segue --value, che imposta chi lo usa */
+.yaru-scale { appearance: none; -webkit-appearance: none; width: 100%; height: 20px; margin: 0; background: transparent; cursor: pointer; outline: 0; }
+.yaru-scale::-webkit-slider-runnable-track { height: 4px; border-radius: var(--check_radius); background: linear-gradient(to right, var(--accent_bg_color) var(--value, 50%), var(--dark_fill) var(--value, 50%)); }
+.yaru-scale::-moz-range-track { height: 4px; border-radius: var(--check_radius); background: var(--dark_fill); }
+.yaru-scale::-moz-range-progress { height: 4px; border-radius: var(--check_radius); background: var(--accent_bg_color); }
+.yaru-scale::-webkit-slider-thumb { -webkit-appearance: none; width: var(--scale_slider_size); height: var(--scale_slider_size); margin-top: -8px; border: 0; border-radius: 50%; background: var(--slider_color); box-shadow: var(--scale_slider_shadow); }
+.yaru-scale::-moz-range-thumb { width: var(--scale_slider_size); height: var(--scale_slider_size); border: 0; border-radius: 50%; background: var(--slider_color); box-shadow: var(--scale_slider_shadow); }
+.yaru-scale:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--focus_border_color); outline-offset: 2px; }
+.yaru-scale:focus-visible::-moz-range-thumb { outline: 2px solid var(--focus_border_color); outline-offset: 2px; }
+
+/* ProgressBar e LevelBar: elemento progress */
+.yaru-progressbar, .yaru-levelbar { appearance: none; -webkit-appearance: none; display: block; width: 100%; border: 0; overflow: hidden; background: var(--dark_fill); }
+.yaru-progressbar { height: 4px; border-radius: var(--check_radius); }
+.yaru-levelbar { height: 11px; border-radius: var(--levelbar_radius); }
+.yaru-progressbar::-webkit-progress-bar, .yaru-levelbar::-webkit-progress-bar { background: var(--dark_fill); }
+.yaru-progressbar::-webkit-progress-value { background: var(--accent_bg_color); }
+.yaru-progressbar::-moz-progress-bar { background: var(--accent_bg_color); }
+.yaru-levelbar::-webkit-progress-value { background: var(--success_color); }
+.yaru-levelbar::-moz-progress-bar { background: var(--success_color); }
+
+/* HeaderBar */
+.yaru-headerbar { box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: var(--headerbar_spacing); min-height: 47px; padding: 6px var(--headerbar_spacing); border-bottom: 1px solid var(--alt_borders_color); background: var(--headerbar_bg_color); color: var(--fg_color); }
+.yaru-headerbar > .title { padding: 0 var(--rich_list_padding_x); font-weight: 700; }
+.yaru-headerbar > .start, .yaru-headerbar > .end { flex: 1 1 0; display: flex; gap: var(--headerbar_spacing); }
+.yaru-headerbar > .end { justify-content: flex-end; }
+.yaru-headerbar .yaru-button[aria-pressed="true"] { border-color: var(--headerbar_checked_borders_color); background: var(--headerbar_checked_bg_color); }
+
+/* NavigationSidebar */
+.yaru-navigation-sidebar { display: flex; flex-direction: column; padding: var(--menu_margin) 0; background: var(--sidebar_bg_color); color: var(--fg_color); }
+.yaru-navigation-sidebar > a { display: flex; align-items: center; gap: 10px; min-height: var(--navigation_row_min_height); margin: 0 var(--menu_margin) 2px; padding: 0 var(--entry_padding_x); border-radius: var(--menu_radius); color: inherit; text-decoration: none; outline: 0 solid transparent; }
+.yaru-navigation-sidebar > a:visited { color: inherit; }
+.yaru-navigation-sidebar > a:hover { background: var(--menu_hover_color); }
+.yaru-navigation-sidebar > a[aria-current="page"] { background: var(--menu_selected_color); }
+.yaru-navigation-sidebar > a:focus-visible { outline: 2px solid var(--focus_border_color); outline-offset: -2px; }
+.yaru-navigation-sidebar > a > svg { flex: none; }
+.yaru-navigation-sidebar > hr { margin: var(--menu_margin); border: 0; border-top: 1px solid var(--borders_color); }
+
+/* Frame e lista ricca */
+.yaru-frame { border: 1px solid var(--borders_color); border-radius: var(--window_radius); overflow: hidden; }
+.yaru-frame.view { background: var(--base_color); color: var(--text_color); }
+.yaru-rich-list > * { box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; min-height: 48px; padding: var(--rich_list_padding_y) var(--rich_list_padding_x); }
+.yaru-rich-list > * + * { border-top: 1px solid var(--treeview_borders_color); }
+
+/* ColumnView: tabella */
+.yaru-columnview { width: 100%; border-collapse: collapse; background: var(--base_color); color: var(--text_color); }
+.yaru-columnview th { height: 34px; padding: 0 10px; border-bottom: 1px solid var(--treeview_borders_color); background: var(--base_color); color: var(--column_header_color); font-weight: 700; text-align: left; white-space: nowrap; }
+.yaru-columnview th + th { border-left: 1px solid var(--treeview_borders_color); }
+.yaru-columnview td { height: 34px; padding: 0 10px; white-space: nowrap; }
+.yaru-columnview tr[aria-selected="true"] { background: var(--accent_bg_color); color: var(--accent_fg_color); }

@@ -408,7 +408,7 @@ function renderReconcile(data) {
   if (data.phantom?.length) {
     ph.append(el('p', { className: 'muted', style: 'margin:12px 0 6px' },
       `Asset nel CSV ma non nel portafoglio (${data.phantom.length}) — dust/airdrop/nuovi. Metti una quantità per aggiungerli:`));
-    const pt = el('table');
+    const pt = el('table', { className: 'yaru-columnview' });
     pt.append(headRow(['Asset', 'CSV', 'Quantità da aggiungere']));
     const ptb = el('tbody');
     for (const p of data.phantom) {

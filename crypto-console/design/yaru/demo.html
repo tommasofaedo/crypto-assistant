@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yaru, componenti</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="yaru.css">
+<style>
+  body { margin: 0; }
+  main { max-width: 760px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; gap: 32px; }
+  section { display: flex; flex-direction: column; gap: 12px; }
+  h1, h2 { margin: 0; }
+  .stack { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+</style>
+</head>
+<body class="yaru">
+<main>
+<h1 class="title-1">Yaru, componenti</h1>
+<section>
+<h2 class="title-4">Button</h2>
+<div class="stack">
+<button class="yaru-button">Esporta</button>
+<button class="yaru-button suggested-action">Salva parametri</button>
+<button class="yaru-button destructive-action">Arresta linea</button>
+<button class="yaru-button" disabled>Ripristina</button>
+<button class="yaru-button flat image-button" aria-label="Menu"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M3 3v1h10V3zm0 4v1h10V7zm0 4v1h10v-1z"></path></svg></button>
+<div class="yaru-linked"><button class="yaru-button" aria-pressed="true">Comandi</button><button class="yaru-button">Storico</button><button class="yaru-button">Manutenzione</button></div>
+</div>
+</section>
+<section>
+<h2 class="title-4">Entry</h2>
+<div class="stack">
+<label class="yaru-entry" style="width: 240px"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M7 1C3.69 1 1 3.69 1 7s2.69 6 6 6a5.948 5.948 0 0 0 3.664-1.273l2.863 2.863 1.063-1.063-2.863-2.863A5.949 5.949 0 0 0 13 7c0-3.31-2.69-6-6-6zm0 1a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5z"></path></svg><input type="search" placeholder="Cerca negli eventi" aria-label="Cerca negli eventi"></label>
+<label class="yaru-entry" style="width: 200px"><input type="text" value="Lamiera 2 mm" aria-label="Nome ricetta"></label>
+<label class="yaru-entry error" style="width: 120px"><input type="text" value="340" aria-label="Pressione in bar"></label>
+</div>
+</section>
+<section>
+<h2 class="title-4">Switch</h2>
+<div class="stack">
+<label class="yaru-choice"><input class="yaru-switch" type="checkbox" role="switch" checked><span>Ciclo automatico</span></label>
+<label class="yaru-choice"><input class="yaru-switch" type="checkbox" role="switch"><span>Lubrificazione centralizzata</span></label>
+<label class="yaru-choice"><input class="yaru-switch" type="checkbox" role="switch" disabled><span>Non disponibile</span></label>
+</div>
+</section>
+<section>
+<h2 class="title-4">Checkbox</h2>
+<div class="stack">
+<label class="yaru-choice"><input class="yaru-check" type="checkbox" checked><span>Avvisa a fine lotto</span></label>
+<label class="yaru-choice"><input class="yaru-check" type="checkbox"><span>Stampa le etichette</span></label>
+<label class="yaru-choice"><input class="yaru-check" type="checkbox" disabled><span>Non disponibile</span></label>
+</div>
+</section>
+<section>
+<h2 class="title-4">Radio</h2>
+<div class="stack">
+<label class="yaru-choice"><input class="yaru-radio" type="radio" name="modo" checked><span>Automatica</span></label>
+<label class="yaru-choice"><input class="yaru-radio" type="radio" name="modo"><span>Manuale</span></label>
+<label class="yaru-choice"><input class="yaru-radio" type="radio" name="modo"><span>Manutenzione</span></label>
+</div>
+</section>
+<section>
+<h2 class="title-4">Scale</h2>
+<div class="stack">
+<input class="yaru-scale" type="range" min="0" max="100" value="65" style="--value: 65%; width: 220px" aria-label="Velocità nastro">
+<span>Velocità nastro</span>
+</div>
+<script>
+  document.querySelector('.yaru-scale').addEventListener('input', function () { this.style.setProperty('--value', this.value + '%'); });
+</script>
+</section>
+<section>
+<h2 class="title-4">ProgressBar</h2>
+<div style="display: flex; flex-direction: column; gap: 12px; max-width: 360px">
+<progress class="yaru-progressbar" value="1240" max="2000">62%</progress>
+<progress class="yaru-levelbar" value="70" max="100">70%</progress>
+</div>
+</section>
+<section>
+<h2 class="title-4">HeaderBar</h2>
+<header class="yaru-headerbar">
+<div class="start"><button class="yaru-button flat image-button" aria-label="Aggiorna dati"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><g><path d="M13.909 1.307l-3.304 3.307c.732.273 1.5.527 2.306.764.8.231 1.592.436 2.375.612a48.514 48.514 0 0 0-.621-2.366 40.298 40.298 0 0 0-.756-2.316z"></path><path d="M8.102 1A7.003 7.003 0 0 0 1 8a7.003 7.003 0 0 0 4.895 6.676 7.005 7.005 0 0 0 7.84-2.66l.287-.41-.82-.575-.288.41a5.996 5.996 0 0 1-6.719 2.282A5.996 5.996 0 0 1 2 8a5.996 5.996 0 0 1 4.195-5.723 5.996 5.996 0 0 1 6.72 2.282l.286.41.82-.574-.287-.41A7.006 7.006 0 0 0 8.102 1z"></path></g></svg></button></div>
+<div class="yaru-linked"><button class="yaru-button" aria-pressed="true">Comandi</button><button class="yaru-button">Storico</button><button class="yaru-button">Manutenzione</button></div>
+<div class="end"><button class="yaru-button">Esporta report</button></div>
+</header>
+</section>
+<section>
+<h2 class="title-4">NavigationSidebar</h2>
+<nav class="yaru-navigation-sidebar" aria-label="Sezioni" style="width: 240px">
+<a href="#panoramica"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><g><path d="M14 5V3h-2.002z"></path><g><path d="M2 7v8h9v-1H3V6.333zm11.002-1L13 15h1V7z"></path><path d="M8 8.986a8.47 8.47 0 0 1 .607-.122 5.24 5.24 0 0 1 .872-.064c.295 0 .54.043.735.129.195.08.35.197.465.35.119.147.202.326.25.535.047.21.071.44.071.693V14.2H8z"></path><path d="M8 .293L.146 8.146l.708.708L8 1.707l7.146 7.147.708-.708z" fill-rule="evenodd"></path></g></g></svg><span>Panoramica</span></a>
+<a href="#macchine" aria-current="page"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="m10.842 1.01c-0.97171 0.037804-1.9331 0.42526-2.6719 1.1641-1.0431 1.0431-1.3837 2.5268-1.0293 3.8613l-5.4168 5.4168c-0.045311 0.03783-0.088369 0.07861-0.13086 0.1211-0.77686 0.77686-0.77881 2.0532-0.00195 2.8301 0.77686 0.77686 2.0532 0.77492 2.8301-2e-3 0.00142-0.0014 0.00254-0.0024 0.00388-0.0039l0.00587 0.0039 5.536-5.536c1.3346 0.35446 2.8178 0.0103 3.8613-1.0332 1.3145-1.3145 1.5209-3.3278 0.61719-4.8613l-2.0352 2.0312-1.4121-1.4121 2.0332-2.0332c-0.67071-0.39428-1.4337-0.57628-2.1895-0.54688zm0.01758 0.99414c0.10292-0.00453 0.2057-0.00409 0.30859 0.00195l-1.584 1.584 2.8281 2.8281 2e-3 -1.41e-5 1.584-1.582c0.04535 0.82049-0.24837 1.6566-0.87891 2.2871-0.92798 0.92798-2.3002 1.1272-3.416 0.5918l-0.12111 0.11913-0.00199-0.00197-4.6414 4.6434c-0.086526-0.33192-0.25925-0.64402-0.51758-0.90234-0.25597-0.25596-0.56403-0.42834-0.89258-0.51562l4.0242-4.0262 0.00198 0.00198 0.73241-0.73439c-0.53572-1.1172-0.33939-2.4926 0.58789-3.4199 0.55252-0.55252 1.2639-0.84331 1.9844-0.875zm-1.2793 3.207c-0.12857 2.8e-6 -0.25573 0.049882-0.35352 0.14844-0.19192 0.19644-0.19104 0.51166 0.0039 0.70508l0.70508 0.70313c0.19342 0.19496 0.50862 0.19777 0.70508 0.00586 0.19712-0.19556 0.19711-0.51341 0-0.70898l-0.70508-0.70508c-0.09779-0.098554-0.2269-0.14844-0.35547-0.14844zm-6.5633 6.7742c0.55228 0 1 0.44771 1 1 7e-7 0.55228-0.44771 1-1 1-0.55228 3e-6 -1-0.44771-1-1 4e-7 -0.55229 0.44771-1 1-1z" fill-rule="evenodd"></path></svg><span>Macchine</span></a>
+<a href="#allarmi"><svg viewBox="0 0 16.002 16.002" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M7.963 0a1.499 1.499 0 0 0-1.277.785l-6.502 12A1.5 1.5 0 0 0 1.5 15.002h13a1.5 1.5 0 0 0 1.317-2.217l-6.498-12A1.496 1.496 0 0 0 7.963 0zm.025 1a.494.494 0 0 1 .451.262l6.498 12c.203.374-.016.74-.437.74h-13c-.422 0-.64-.366-.438-.74l6.502-12A.493.493 0 0 1 7.988 1zm-.695 2.002v2.662c0 .793.03 1.517.086 2.168.057.642.128 1.284.213 1.926h.82c.085-.642.157-1.284.213-1.926.057-.651.086-1.375.086-2.168V3.002zm.71 8a1 1 0 0 0-1 1c0 .282.118.535.306.717.17.189.4.283.693.283.293 0 .524-.094.694-.283a.994.994 0 0 0 .306-.717 1 1 0 0 0-1-1z"></path></svg><span>Allarmi</span></a>
+<hr>
+<a href="#impostazioni"><svg viewBox="0 0 16.015 16" width="16" height="16" fill="currentColor" aria-hidden="true"><g transform="translate(-292 -260)"><path d="m300.18 261c-2.483-0.0657-4.9225 1.1941-6.248 3.4922-1.9281 3.3427-0.77551 7.629 2.5703 9.5625 3.3458 1.9335 7.6344 0.79191 9.5625-2.5508 1.9281-3.3427 0.77551-7.6329-2.5703-9.5664-1.0456-0.60423-2.1858-0.90763-3.3144-0.9375zm-0.18164 0.99609a6 6 0 0 1 6 6 6 6 0 0 1-6 6 6 6 0 0 1-6-6 6 6 0 0 1 6-6z"></path><path d="m298.69 260.12v1.5451c0.8682-0.17823 1.7641-0.17645 2.6322 5e-3v-1.5501zm-2.7536 0.98912-2.0054 1.7049 0.98801 1.1776c0.54939-0.69591 1.236-1.2714 2.0174-1.6908zm8.1287 0.0127-0.99285 1.1835c0.0573 0.0293 0.11416 0.0595 0.17056 0.0905 0.71062 0.41285 1.3366 0.95678 1.8446 1.6029l1.0051-1.1977zm-11.61 4.2168-0.44056 2.5954 1.5154 0.26739c-0.0273-0.8866 0.12755-1.769 0.45509-2.5927zm15.086 3e-3 -1.5228 0.26851c0.32999 0.82318 0.48779 1.705 0.46365 2.5909l1.5329-0.27zm-13.682 4.6946-1.3515 0.78058h-3.4e-4l1.331 2.271 1.3381-0.77238c-0.59005-0.66203-1.0384-1.4377-1.3172-2.2792zm12.301 3e-3c-0.13616 0.42225-0.31536 0.82932-0.53478 1.2148-0.22083 0.38188-0.48014 0.74014-0.77388 1.0692l1.3388 0.77313 1.3016-2.2881zm-9.5569 3.4716-0.53479 1.4688 2.4795 0.88448 0.52585-1.4453c-0.81119-0.11877-1.5928-0.39021-2.3034-0.79995-0.0563-0.0351-0.11203-0.0711-0.16721-0.10799zm6.8133 0.0153c-0.75448 0.46544-1.5968 0.77091-2.4747 0.89752l0.53031 1.4565 2.4676-0.91651z"></path><path d="m299.65 263.01c-1.6024 0.11249-3.1219 0.99052-3.9824 2.4824-1.3769 2.3871-0.55308 5.4534 1.8359 6.834 2.389 1.3806 5.4532 0.56088 6.8301-1.8262 1.3769-2.3871 0.55308-5.4514-1.8359-6.832-0.89588-0.51773-1.8862-0.72569-2.8476-0.65821zm0.35156 0.98633a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4z"></path></g></svg><span>Impostazioni</span></a>
+</nav>
+</section>
+<section>
+<h2 class="title-4">Frame</h2>
+<div class="yaru-frame view yaru-rich-list" style="max-width: 420px">
+<label><span>Ciclo automatico</span><input class="yaru-switch" type="checkbox" role="switch" checked></label>
+<label><span>Lubrificazione centralizzata</span><input class="yaru-switch" type="checkbox" role="switch"></label>
+<div><span>Ricetta</span><button class="yaru-button">Lamiera 2 mm</button></div>
+</div>
+</section>
+<section>
+<h2 class="title-4">ColumnView</h2>
+<div class="yaru-frame" style="max-width: 560px"><table class="yaru-columnview"><thead><tr><th scope="col">Ora</th><th scope="col">Macchina</th><th scope="col">Evento</th></tr></thead><tbody><tr aria-selected="true"><td>08:42</td><td>Pressa P2</td><td>Pressione olio sotto soglia</td></tr><tr><td>08:15</td><td>Nastro N1</td><td>Arresto per fotocellula ostruita</td></tr><tr><td>07:30</td><td>Forno F1</td><td>Temperatura fuori tolleranza</td></tr></tbody></table></div>
+</section>
+</main>
+</body>
+</html>

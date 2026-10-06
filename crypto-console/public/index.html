@@ -4,119 +4,164 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>crypto-console</title>
+  <!-- Design system Yaru: prima i token, poi i componenti, infine il layer dell'app. -->
+  <link rel="stylesheet" href="/yaru/tokens.css">
+  <link rel="stylesheet" href="/yaru/yaru.css">
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
-  <header>
-    <h1 id="title" data-home>crypto-console</h1>
-    <span id="subtitle">consigli · profili · storico</span>
+<body class="yaru">
+  <header class="yaru-headerbar">
+    <div class="start">
+      <button class="yaru-button flat" id="title" data-home>crypto-console</button>
+    </div>
+    <div class="end">
+      <span id="subtitle" class="dim-label caption">consigli · profili · storico</span>
+    </div>
   </header>
 
   <main>
     <!-- HOME: griglia profili -->
     <section id="home">
       <div class="home-head">
-        <input type="search" id="q" class="search" placeholder="Cerca nome, slug o tag…">
-        <select id="filter-tag" class="select"><option value="">tutti i tag</option></select>
-        <select id="sort" class="select">
+        <label class="yaru-entry search" aria-label="Cerca">
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M7 1C3.69 1 1 3.69 1 7s2.69 6 6 6a5.948 5.948 0 0 0 3.664-1.273l2.863 2.863 1.063-1.063-2.863-2.863A5.949 5.949 0 0 0 13 7c0-3.31-2.69-6-6-6zm0 1a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5z"></path></svg>
+          <input type="search" id="q" placeholder="Cerca nome, slug o tag…">
+        </label>
+        <select id="filter-tag" class="yaru-select"><option value="">tutti i tag</option></select>
+        <select id="sort" class="yaru-select">
           <option value="name">nome A→Z</option>
           <option value="value">valore ↓</option>
           <option value="lastRun">ultima run ↓</option>
         </select>
-        <label class="chk"><input type="checkbox" id="show-archived"> mostra archiviati</label>
-        <button id="btn-new">+ Nuovo profilo</button>
+        <label class="yaru-choice"><input class="yaru-check" type="checkbox" id="show-archived"><span>Mostra archiviati</span></label>
+        <button id="btn-new" class="yaru-button suggested-action">Nuovo profilo</button>
       </div>
-      <p id="home-count" class="muted"></p>
+      <p id="home-count" class="dim-label caption"></p>
       <div id="profiles" class="grid"></div>
-      <p id="home-empty" class="muted" hidden>Nessun profilo trovato in data/profiles/.</p>
+      <p id="home-empty" class="dim-label" hidden>Nessun profilo trovato in data/profiles/.</p>
     </section>
 
     <!-- DETTAGLIO profilo -->
     <section id="detail" hidden>
-      <button class="link" id="back">← profili</button>
-      <h2 id="d-name"></h2>
-      <p class="muted" id="d-meta"></p>
-
-      <h3>Scheda profilo <span class="muted">— nome leggibile, tag, nota, archiviazione</span></h3>
-      <div class="controls">
-        <label>Nome leggibile <input type="text" id="m-name" placeholder="es. Mario Rossi"></label>
-        <label>Tag <input type="text" id="m-tags" placeholder="cliente, vip"></label>
-        <label class="chk"><input type="checkbox" id="m-archived"> archiviato</label>
-      </div>
-      <div class="controls">
-        <label class="grow">Nota <input type="text" id="m-note" placeholder="appunti liberi su questo profilo"></label>
-        <button id="btn-save-meta" class="secondary">Salva scheda</button>
-        <span class="muted" id="m-status"></span>
-      </div>
-
-      <div class="controls">
-        <label>Budget € <input type="number" id="budget" value="0" min="0" step="5"></label>
-        <label class="chk"><input type="checkbox" id="useai" checked> con nota Hari Seldon</label>
-        <button id="btn-analyze">Analizza</button>
-        <button id="btn-sync" class="secondary">Sync saldi</button>
-        <span id="busy" class="busy" hidden>…in corso</span>
-      </div>
+      <button class="link" id="back">← Profili</button>
+      <h2 id="d-name" class="title-2"></h2>
+      <p class="dim-label caption" id="d-meta"></p>
       <p id="d-error" class="error" hidden></p>
 
-      <h3>Telegram <span class="muted">— destinatario dei report push</span></h3>
-      <div class="controls">
-        <label>Chat id <input type="text" id="tg-chat" inputmode="numeric" placeholder="es. 123456789"></label>
-        <label>Budget push € <input type="number" id="tg-budget" value="0" min="0" step="5"></label>
-        <button id="btn-save-tg" class="secondary">Salva Telegram</button>
-        <span class="muted" id="tg-note"></span>
-      </div>
-
-      <h3>Portafoglio <span class="muted" id="pf-note"></span>
-        <button id="btn-edit-pf" class="mini secondary">Modifica</button>
-        <button id="btn-save-pf" class="mini" hidden>Salva</button>
-        <button id="btn-cancel-pf" class="mini secondary" hidden>Annulla</button>
-        <button id="btn-value" class="mini secondary">Aggiorna valori</button>
-      </h3>
-      <p id="pf-valuation" class="valuation"></p>
-      <div class="table-wrap"><table id="pf-table"></table></div>
-
-      <div id="report-box" hidden>
-        <h3>Analisi <span class="muted" id="an-meta"></span></h3>
-        <div class="table-wrap"><table id="an-table"></table></div>
-        <h3>Raccomandazione Hari Seldon</h3>
-        <pre id="report" class="report"></pre>
-      </div>
-
-      <h3>Riconciliazione CSV <span class="muted">— sola lettura, nessuna modifica applicata</span></h3>
-      <div class="controls">
-        <input type="file" id="csvfile" accept=".csv">
-        <button id="btn-csv" class="secondary">Riconcilia</button>
-      </div>
-      <div id="csv-box" hidden>
-        <p class="muted" id="csv-summary"></p>
-        <div class="table-wrap"><table id="csv-table"></table></div>
-        <div id="csv-phantom"></div>
+      <h3 class="group-title">Scheda profilo <span class="dim-label">— nome leggibile, tag, nota, archiviazione</span></h3>
+      <div class="yaru-frame view panel">
         <div class="controls">
-          <button id="btn-apply-csv">Applica quantità</button>
-          <span class="muted">modifica i valori in colonna "Proposta" prima di applicare</span>
+          <label class="field">Nome leggibile
+            <span class="yaru-entry"><input type="text" id="m-name" placeholder="es. Mario Rossi"></span>
+          </label>
+          <label class="field">Tag
+            <span class="yaru-entry"><input type="text" id="m-tags" placeholder="cliente, vip"></span>
+          </label>
+          <label class="yaru-choice"><input class="yaru-check" type="checkbox" id="m-archived"><span>Archiviato</span></label>
+        </div>
+        <div class="controls">
+          <label class="field grow">Nota
+            <span class="yaru-entry"><input type="text" id="m-note" placeholder="appunti liberi su questo profilo"></span>
+          </label>
+          <button id="btn-save-meta" class="yaru-button">Salva scheda</button>
+          <span class="dim-label caption" id="m-status"></span>
         </div>
       </div>
 
-      <h3>Storico <button id="btn-hist" class="mini secondary">Apri storico</button></h3>
+      <h3 class="group-title">Azioni <span class="dim-label">— run del motore e sincronizzazione saldi</span></h3>
+      <div class="yaru-frame view panel">
+        <div class="controls">
+          <label class="field">Budget €
+            <span class="yaru-entry"><input type="number" id="budget" value="0" min="0" step="5"></span>
+          </label>
+          <label class="yaru-choice"><input class="yaru-check" type="checkbox" id="useai" checked><span>Con nota Hari Seldon</span></label>
+          <button id="btn-analyze" class="yaru-button suggested-action">Analizza</button>
+          <button id="btn-sync" class="yaru-button">Sync saldi</button>
+          <span id="busy" class="busy" hidden>…in corso</span>
+        </div>
+      </div>
+
+      <h3 class="group-title">Telegram <span class="dim-label">— destinatario dei report push</span></h3>
+      <div class="yaru-frame view panel">
+        <div class="controls">
+          <label class="field">Chat id
+            <span class="yaru-entry"><input type="text" id="tg-chat" inputmode="numeric" placeholder="es. 123456789"></span>
+          </label>
+          <label class="field">Budget push €
+            <span class="yaru-entry"><input type="number" id="tg-budget" value="0" min="0" step="5"></span>
+          </label>
+          <button id="btn-save-tg" class="yaru-button">Salva Telegram</button>
+          <span class="dim-label caption" id="tg-note"></span>
+        </div>
+      </div>
+
+      <h3 class="group-title">Portafoglio <span class="dim-label caption" id="pf-note"></span>
+        <span class="group-actions">
+          <button id="btn-edit-pf" class="yaru-button mini">Modifica</button>
+          <button id="btn-save-pf" class="yaru-button mini suggested-action" hidden>Salva</button>
+          <button id="btn-cancel-pf" class="yaru-button mini" hidden>Annulla</button>
+          <button id="btn-value" class="yaru-button mini">Aggiorna valori</button>
+        </span>
+      </h3>
+      <p id="pf-valuation" class="valuation"></p>
+      <div class="table-wrap"><table id="pf-table" class="yaru-columnview"></table></div>
+
+      <div id="report-box" hidden>
+        <h3 class="group-title">Analisi <span class="dim-label caption" id="an-meta"></span></h3>
+        <div class="table-wrap"><table id="an-table" class="yaru-columnview"></table></div>
+        <h3 class="group-title">Raccomandazione Hari Seldon</h3>
+        <pre id="report" class="report"></pre>
+      </div>
+
+      <h3 class="group-title">Riconciliazione CSV <span class="dim-label">— sola lettura, nessuna modifica applicata</span></h3>
+      <div class="yaru-frame view panel">
+        <div class="controls">
+          <input type="file" id="csvfile" accept=".csv" class="yaru-file">
+          <button id="btn-csv" class="yaru-button">Riconcilia</button>
+        </div>
+      </div>
+      <div id="csv-box" hidden>
+        <p class="dim-label caption" id="csv-summary"></p>
+        <div class="table-wrap"><table id="csv-table" class="yaru-columnview"></table></div>
+        <div id="csv-phantom"></div>
+        <div class="controls">
+          <button id="btn-apply-csv" class="yaru-button suggested-action">Applica quantità</button>
+          <span class="dim-label caption">modifica i valori in colonna "Proposta" prima di applicare</span>
+        </div>
+      </div>
+
+      <h3 class="group-title">Storico
+        <span class="group-actions"><button id="btn-hist" class="yaru-button mini">Apri storico</button></span>
+      </h3>
     </section>
   </main>
 
   <!-- Modale: nuovo profilo (nome leggibile + slug + tag + chat Telegram in un colpo) -->
   <div id="modal" class="modal" hidden>
     <div class="modal-card">
-      <h3>Nuovo profilo</h3>
+      <h3 class="title-4">Nuovo profilo</h3>
       <div class="form">
-        <label>Nome leggibile <input type="text" id="nf-name" placeholder="es. Mario Rossi"></label>
-        <label>Slug (cartella) <input type="text" id="nf-slug" placeholder="mariorossi"></label>
-        <label>Tag <input type="text" id="nf-tags" placeholder="cliente, vip"></label>
-        <label>Chat Telegram <input type="text" id="nf-chat" inputmode="numeric" placeholder="es. 123456789"></label>
-        <label>Budget push € <input type="number" id="nf-budget" value="0" min="0" step="5"></label>
+        <label class="field">Nome leggibile
+          <span class="yaru-entry"><input type="text" id="nf-name" placeholder="es. Mario Rossi"></span>
+        </label>
+        <label class="field">Slug (cartella)
+          <span class="yaru-entry"><input type="text" id="nf-slug" placeholder="mariorossi"></span>
+        </label>
+        <label class="field">Tag
+          <span class="yaru-entry"><input type="text" id="nf-tags" placeholder="cliente, vip"></span>
+        </label>
+        <label class="field">Chat Telegram
+          <span class="yaru-entry"><input type="text" id="nf-chat" inputmode="numeric" placeholder="es. 123456789"></span>
+        </label>
+        <label class="field">Budget push €
+          <span class="yaru-entry"><input type="number" id="nf-budget" value="0" min="0" step="5"></span>
+        </label>
       </div>
-      <p class="muted">Lo slug identifica la cartella del profilo e non si cambia dopo: solo lettere, numeri, <code>_</code> e <code>-</code>. Chat e budget sono facoltativi (impostabili anche dopo).</p>
+      <p class="dim-label caption">Lo slug identifica la cartella del profilo e non si cambia dopo: solo lettere, numeri, <code>_</code> e <code>-</code>. Chat e budget sono facoltativi (impostabili anche dopo).</p>
       <p id="nf-error" class="error" hidden></p>
       <div class="modal-actions">
-        <button class="secondary" id="nf-cancel">Annulla</button>
-        <button id="nf-create">Crea profilo</button>
+        <button class="yaru-button" id="nf-cancel">Annulla</button>
+        <button class="yaru-button suggested-action" id="nf-create">Crea profilo</button>
       </div>
     </div>
   </div>
@@ -124,9 +169,9 @@
   <!-- Modale: storico snapshot del profilo (a richiesta) -->
   <div id="modal-hist" class="modal" hidden>
     <div class="modal-card modal-wide">
-      <h3>Storico <span class="muted" id="hist-title"></span></h3>
-      <div class="table-wrap"><table id="hist-table"></table></div>
-      <div class="modal-actions"><button class="secondary" id="hist-close">Chiudi</button></div>
+      <h3 class="title-4">Storico <span class="dim-label" id="hist-title"></span></h3>
+      <div class="table-wrap"><table id="hist-table" class="yaru-columnview"></table></div>
+      <div class="modal-actions"><button class="yaru-button" id="hist-close">Chiudi</button></div>
     </div>
   </div>
 

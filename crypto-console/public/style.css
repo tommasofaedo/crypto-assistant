@@ -1,94 +1,189 @@
-:root {
-  --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2a2f3a;
-  --text: #e6e8ec; --muted: #8b93a1; --accent: #4f9cff; --accent2: #2b6fd6;
-  --green: #3ecf8e; --red: #ff6b6b; --amber: #f0a84b;
-}
-* { box-sizing: border-box; }
-body {
-  margin: 0; background: var(--bg); color: var(--text);
-  font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-}
-header {
-  display: flex; align-items: baseline; gap: 12px;
-  padding: 16px 24px; border-bottom: 1px solid var(--line); background: var(--panel);
-}
-header h1 { font-size: 18px; margin: 0; cursor: pointer; }
-#subtitle { color: var(--muted); font-size: 13px; }
+/* Layer dell'app sopra Yaru (design/yaru/). Qui solo layout e componenti di dominio che
+   il tema non ha (card profilo, tabelle finanziarie, modale), costruiti con i token:
+   bordi di 1px, niente ombre né gradienti, un solo accento. Nessun valore fuori dai token. */
+
+body { margin: 0; min-height: 100vh; }
+
+/* I componenti Yaru impostano display esplicito (inline-flex), che vincerebbe sul default
+   di [hidden]: va riaffermato perché l'attributo hidden continui a nascondere gli elementi. */
+[hidden] { display: none !important; }
+
+/* Testo secondario generato da JS (equivalente a .dim-label). */
+.muted { color: var(--fg_color); opacity: var(--dim_label_opacity); }
+
+/* HeaderBar: il titolo è un pulsante piatto; il sottotitolo sta a destra e sparisce se stretto. */
+#title { font-weight: 700; padding-left: var(--rich_list_padding_x); padding-right: var(--rich_list_padding_x); }
+.yaru-headerbar .end { align-items: baseline; }
+
 main { padding: 24px; max-width: 1100px; margin: 0 auto; }
 
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
-.card {
-  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
-  padding: 16px; cursor: pointer; transition: border-color .15s, transform .05s;
+/* Titoli di gruppo sopra i riquadri (title-4) con eventuale azione a destra. */
+.group-title {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin: 28px 0 10px; font-family: var(--font-sans); font-size: 19.067px; font-weight: 700;
 }
-.card:hover { border-color: var(--accent); }
-.card:active { transform: translateY(1px); }
-.card.archived { opacity: .55; }
-.card-head { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
-.card-head h3 { margin: 0; font-size: 16px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.card h3 { margin: 0 0 8px; font-size: 16px; }
-.card .sub { color: var(--muted); font-size: 12px; margin: -4px 0 8px; font-variant-numeric: tabular-nums; }
-.card .row { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; }
-.card .val { color: var(--text); font-variant-numeric: tabular-nums; }
-.badge-tg { font-size: 13px; }
-.badge-arch { font-size: 11px; padding: 1px 6px; border-radius: 5px; background: var(--panel2); border: 1px solid var(--line); color: var(--muted); }
-.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
-.chip { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); color: var(--muted); }
+.group-title .dim-label { font-size: 14.667px; font-weight: 400; }
+.group-actions { margin-left: auto; display: inline-flex; gap: 8px; }
 
-.muted { color: var(--muted); }
-.error { color: var(--red); background: #2a1618; border: 1px solid #50262a; padding: 8px 12px; border-radius: 8px; }
-.link { background: none; border: none; color: var(--accent); cursor: pointer; padding: 0; font-size: 13px; margin-bottom: 12px; }
+/* Riquadro contenitore di controlli. */
+.panel { padding: 16px; }
+.panel + .panel { margin-top: 12px; }
 
-.controls { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 16px 0; }
-.controls label { color: var(--muted); }
-.controls .chk { display: flex; align-items: center; gap: 6px; }
-input[type=number] { width: 90px; background: var(--panel2); border: 1px solid var(--line); color: var(--text); border-radius: 6px; padding: 6px 8px; }
-input[type=text], input[type=search], select { background: var(--panel2); border: 1px solid var(--line); color: var(--text); border-radius: 6px; padding: 6px 8px; font: inherit; }
-.search { width: 220px; }
-.select { cursor: pointer; }
-.controls label.grow { flex: 1; display: flex; align-items: center; gap: 6px; }
-.controls label.grow input { flex: 1; width: auto; }
-button {
-  background: var(--accent2); color: #fff; border: none; border-radius: 7px;
-  padding: 8px 16px; font-size: 14px; cursor: pointer;
+/* Righe di controlli dentro un riquadro. */
+.controls { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.controls + .controls { margin-top: 14px; }
+.field { display: inline-flex; flex-direction: column; gap: 4px; color: var(--fg_color); font-size: 13.2px; }
+.field .yaru-entry { min-width: 150px; }
+.field.grow { flex: 1; }
+.field.grow .yaru-entry { width: 100%; }
+.controls .yaru-choice { min-height: 34px; }
+
+/* Entry numeriche più strette (densità da desktop). */
+#budget, #tg-budget, #nf-budget { width: 90px; }
+
+/* Select: Yaru non ha un componente select; reso con i token nello stile dell'Entry. */
+.yaru-select {
+  box-sizing: border-box; min-height: 34px; padding: 0 28px 0 var(--entry_padding_x);
+  border: 1px solid var(--borders_color); border-radius: var(--button_radius);
+  background: var(--base_color); color: var(--text_color); font: inherit; cursor: pointer;
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='%23888' d='M4 6l4 4 4-4z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 6px center;
 }
-button:hover { background: var(--accent); }
-button.secondary { background: var(--panel2); border: 1px solid var(--line); }
-button.secondary:hover { border-color: var(--accent); background: var(--panel2); }
-button:disabled { opacity: .5; cursor: default; }
-.busy { color: var(--amber); }
+.yaru-select:focus-visible { outline: 2px solid var(--focus_border_color); outline-offset: -2px; }
 
-h2 { margin: 4px 0; } h3 { margin: 24px 0 8px; font-size: 15px; }
-.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-th, td { text-align: right; padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
-th:first-child, td:first-child { text-align: left; }
-th { color: var(--muted); font-weight: 600; background: var(--panel); position: sticky; top: 0; }
-tr:last-child td { border-bottom: none; }
-.pos { color: var(--green); } .neg { color: var(--red); }
-.sig-BUY, .sig-STRONG.BUY { color: var(--green); }
-.badge { font-size: 12px; padding: 2px 7px; border-radius: 5px; background: var(--panel2); border: 1px solid var(--line); }
-.report { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; white-space: pre-wrap; word-break: break-word; font: 13px/1.6 ui-monospace, Menlo, Consolas, monospace; }
+/* File input: reso coerente con l'Entry; il pulsante interno prende lo stile neutro del Button. */
+.yaru-file {
+  box-sizing: border-box; min-height: 34px; padding: 5px var(--entry_padding_x);
+  border: 1px solid var(--borders_color); border-radius: var(--button_radius);
+  background: var(--base_color); color: var(--text_color); font: inherit;
+}
+.yaru-file::file-selector-button {
+  margin-right: 10px; min-height: 24px; padding: 2px 12px;
+  border: 1px solid var(--borders_color); border-radius: var(--button_radius);
+  background: var(--button_bg_color); color: var(--fg_color); font: inherit; cursor: pointer;
+}
+.yaru-file::file-selector-button:hover { background: var(--button_hover_bg_color); }
 
-.home-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+/* Pulsanti compatti nei titoli di gruppo (restano nello stile Yaru, solo più bassi). */
+.yaru-button.mini { min-height: 26px; padding: 2px 12px; font-size: 13.2px; }
+
+/* Link testuale (torna ai profili): pulsante piatto in accento. */
+.link {
+  display: inline-block; margin-bottom: 12px; padding: 2px 0;
+  border: 0; background: none; color: var(--accent_color); font: inherit; cursor: pointer;
+}
+.link:hover { text-decoration: underline; }
+
+.busy { color: var(--accent_color); align-self: center; }
+
+/* ---------- HOME: griglia e card profilo ---------- */
+.home-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.home-head .search { width: 240px; }
 .home-head #btn-new { margin-left: auto; }
-.valuation { margin: 0 0 10px; font-size: 14px; }
-.valuation .amt { font-variant-numeric: tabular-nums; font-weight: 600; }
 #home-count { margin: 0 0 14px; }
-button.mini { font-size: 12px; padding: 4px 10px; margin-left: 8px; vertical-align: middle; }
-td input, th input { width: 120px; background: var(--panel2); border: 1px solid var(--line); color: var(--text); border-radius: 5px; padding: 4px 6px; text-align: right; font-variant-numeric: tabular-nums; }
-td input.sym { width: 70px; text-align: left; text-transform: uppercase; }
-tr.changed td { background: #1b2430; }
 
-/* Modale nuovo profilo */
-.modal { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
-.modal[hidden] { display: none; } /* l'attributo hidden deve vincere sul display:flex qui sopra */
-.modal-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; width: 100%; max-width: 420px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+
+/* Card = riquadro Yaru (base_color, bordo 1px, raggio finestra) reso cliccabile. */
+.card {
+  background: var(--base_color); color: var(--text_color);
+  border: 1px solid var(--borders_color); border-radius: var(--window_radius);
+  padding: 16px; cursor: pointer; transition: border-color 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.card:hover { border-color: var(--accent_borders_color); }
+.card.archived { opacity: var(--dim_label_opacity); }
+.card-head { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+.card-head h3 { margin: 0; font-size: 16.134px; font-weight: 700; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card .sub { color: var(--fg_color); opacity: var(--dim_label_opacity); font-size: 13.2px; margin: -4px 0 8px; font-variant-numeric: tabular-nums; }
+.card .row { display: flex; justify-content: space-between; gap: 12px; font-size: 13.2px; color: var(--fg_color); opacity: var(--dim_label_opacity); }
+.card .row .val { color: var(--text_color); opacity: 1; font-variant-numeric: tabular-nums; }
+.badge-tg { font-size: 13.2px; }
+.badge-arch {
+  font-size: 11px; padding: 1px 7px; border-radius: var(--check_radius);
+  border: 1px solid var(--borders_color); background: var(--dark_fill); color: var(--fg_color);
+}
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.chip {
+  font-size: 11px; padding: 2px 9px; border-radius: var(--switch_radius);
+  border: 1px solid var(--borders_color); background: var(--dark_fill); color: var(--fg_color);
+}
+
+/* ---------- Valori e P&L (dominio) ---------- */
+/* Segno sempre esplicito (+/−); il colore è rinforzo, non unico segnale. */
+.pos { color: var(--success_color); }
+.neg { color: var(--error_color); }
+.valuation { margin: 0 0 10px; font-size: 14.667px; }
+.valuation .amt { font-variant-numeric: tabular-nums; font-weight: 700; }
+
+/* ---------- Tabelle (ColumnView) ---------- */
+/* Riquadro attorno alla tabella + scorrimento orizzontale su schermi stretti. */
+.table-wrap {
+  overflow-x: auto; border: 1px solid var(--borders_color);
+  border-radius: var(--window_radius); background: var(--base_color);
+}
+.yaru-columnview { font-variant-numeric: tabular-nums; }
+/* Numeri allineati a destra, prima colonna (etichetta/asset) a sinistra. */
+.yaru-columnview th, .yaru-columnview td { text-align: right; }
+.yaru-columnview th:first-child, .yaru-columnview td:first-child { text-align: left; }
+.yaru-columnview th { position: sticky; top: 0; }
+.yaru-columnview caption { padding: 16px; color: var(--fg_color); opacity: var(--dim_label_opacity); }
+
+/* Input dentro le celle (modifica portafoglio / riconciliazione). */
+.yaru-columnview td input, .yaru-columnview th input {
+  box-sizing: border-box; width: 120px; padding: 4px 6px; text-align: right;
+  border: 1px solid var(--borders_color); border-radius: var(--button_radius);
+  background: var(--base_color); color: var(--text_color); font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.yaru-columnview td input:focus-visible, .yaru-columnview th input:focus-visible {
+  outline: 2px solid var(--focus_border_color); outline-offset: -2px;
+}
+.yaru-columnview td input.sym { width: 70px; text-align: left; text-transform: uppercase; }
+
+/* Badge riga riconciliazione (alza/tieni). */
+.badge {
+  display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: var(--check_radius);
+  border: 1px solid var(--borders_color); background: var(--dark_fill); color: var(--fg_color);
+}
+.badge.pos { border-color: var(--accent_borders_color); color: var(--accent_color); }
+
+/* Nota Hari Seldon: testo monospazio in un riquadro base_color. */
+.report {
+  margin: 0; padding: 16px; white-space: pre-wrap; word-break: break-word;
+  border: 1px solid var(--borders_color); border-radius: var(--window_radius);
+  background: var(--base_color); color: var(--text_color);
+  font: 13.2px/1.6 var(--font-mono);
+}
+
+/* Messaggio d'errore: parola + bordo d'errore (lo stato non è solo colore). */
+.error {
+  margin: 12px 0; padding: 8px 12px; white-space: pre-wrap;
+  border: 1px solid var(--error_color); border-left-width: 3px; border-radius: var(--button_radius);
+  background: var(--base_color); color: var(--error_color);
+}
+
+/* ---------- Modale ---------- */
+/* Yaru non ha un componente dialog: reso con i token (finestra base_color, raggio finestra). */
+.modal {
+  position: fixed; inset: 0; z-index: 50; padding: 20px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--osd_bg_color);
+}
+.modal[hidden] { display: none; } /* l'attributo hidden deve vincere sul display:flex */
+.modal-card {
+  width: 100%; max-width: 420px; padding: 22px 24px;
+  border: 1px solid var(--alt_borders_color); border-radius: var(--window_radius);
+  background: var(--base_color); color: var(--text_color);
+}
 .modal-card.modal-wide { max-width: 760px; }
 .modal-card .table-wrap { max-height: 60vh; overflow-y: auto; }
-.modal-card h3 { margin: 0 0 16px; }
+.modal-card > h3 { margin: 0 0 16px; }
 .modal .form { display: flex; flex-direction: column; gap: 12px; }
-.modal .form label { display: flex; flex-direction: column; gap: 4px; color: var(--muted); font-size: 13px; }
-.modal .form input { width: 100%; }
+.modal .form .field { width: 100%; }
+.modal .form .yaru-entry { width: 100%; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
-.modal code { background: var(--panel2); padding: 1px 5px; border-radius: 4px; }
+.modal code {
+  padding: 1px 5px; border-radius: var(--check_radius);
+  background: var(--dark_fill); font-family: var(--font-mono);
+}

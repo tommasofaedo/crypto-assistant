@@ -1,0 +1,221 @@
+/* Yaru: token. Generato da tokens.json (ubuntu/yaru@7f18973e, tema GTK4). Non modificare i valori a mano.
+   Tema: segue quello di sistema; per forzarlo metti data-theme="light" o data-theme="dark" su <html>.
+   Carattere: Ubuntu Sans da Google Fonts. Per ambienti senza internet scarica il carattere,
+   servilo in locale e togli la riga @import qui sotto. */
+@import url("https://fonts.googleapis.com/css2?family=Ubuntu+Sans:wght@300;400;700;800&family=Ubuntu+Sans+Mono:wght@400;700&display=swap");
+
+:root, [data-theme="light"] {
+  color-scheme: light;
+  --orange: #e95420;
+  --aubergine: #924d8b;
+  --purple: #762572;
+  --light_aubergine: #77216f;
+  --mid_aubergine: #5e2750;
+  --dark_aubergine: #2c001e;
+  --jet: #181818;
+  --inkstone: #3d3d3d;
+  --slate: #5d5d5d;
+  --graphite: #666666;
+  --white: #ffffff;
+  --porcelain: #f7f7f7;
+  --silk: #cccccc;
+  --warm_gray: #aea79f;
+  --ash: #878787;
+  --red: #c7162b;
+  --yellow: #f99b11;
+  --green: #0e8420;
+  --blue: #19b6ee;
+  --linkblue: #007aa6;
+  --darkblue: #335280;
+  --bg_color: #fafafa;
+  --base_color: #ffffff;
+  --fg_color: #3d3d3d;
+  --text_color: #000000;
+  --borders_color: #cccccc;
+  --alt_borders_color: #bdbdbd;
+  --headerbar_bg_color: #ebebeb;
+  --headerbar_checked_bg_color: #cfcfcf;
+  --headerbar_checked_borders_color: #bdbdbd;
+  --sidebar_bg_color: #fafafa;
+  --menu_color: #fafafa;
+  --menu_selected_color: #ebebeb;
+  --menu_hover_color: #dedede;
+  --dark_fill: #e3e3e3;
+  --treeview_borders_color: #d6d6d6;
+  --column_header_color: #9e9e9e;
+  --button_bg_color: #ffffff;
+  --button_hover_bg_color: #fafafa;
+  --button_active_bg_color: #dbdbdb;
+  --button_flat_hover_bg_color: #dbdbdb;
+  --insensitive_fg_color: #9c9c9c;
+  --insensitive_bg_color: #fcfcfc;
+  --accent_bg_color: #d6421d;
+  --accent_fg_color: #ffffff;
+  --accent_color: #d33e05;
+  --accent_hover_bg_color: #cd3f1c;
+  --accent_active_bg_color: #972f14;
+  --accent_borders_color: #7c2611;
+  --selected_text_bg_color: rgba(214, 66, 29, 0.3);
+  --link_color: #ba2501;
+  --link_visited_color: #871b01;
+  --progress_bg_color: #e56241;
+  --checkradio_bg_color: #e24f2a;
+  --checkradio_borders_color: #c03b1a;
+  --check_bg_color: #ffffff;
+  --switch_trough_color: #cccccc;
+  --slider_color: #fcfcfc;
+  --focus_border_color: rgba(232, 113, 83, 0.7);
+  --destructive_color: #c7162b;
+  --destructive_hover_color: #be1529;
+  --destructive_active_color: #870f1d;
+  --destructive_borders_color: #6b0c17;
+  --warning_color: #f99b11;
+  --error_color: #c7162b;
+  --success_color: #109b26;
+  --scrollbar_slider_color: #898989;
+  --osd_bg_color: rgba(29, 29, 29, 0.975);
+  --osd_fg_color: #eeeeec;
+  --tooltip_borders_color: rgba(255, 255, 255, 0.1);
+  --shadow_color: rgba(0, 0, 0, 0.1);
+  --switch_slider_shadow: 0 2px 2px rgba(0, 0, 0, 0.1);
+  --scale_slider_shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.2), 0 1px 0 rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg_color: #2c2c2c;
+  --base_color: #272727;
+  --fg_color: #f7f7f7;
+  --text_color: #ffffff;
+  --borders_color: #131313;
+  --alt_borders_color: #000000;
+  --headerbar_bg_color: #222222;
+  --headerbar_checked_bg_color: #151515;
+  --headerbar_checked_borders_color: #040404;
+  --sidebar_bg_color: #2c2c2c;
+  --menu_color: #1d1d1d;
+  --menu_selected_color: #3c3c3c;
+  --menu_hover_color: #484848;
+  --dark_fill: #202020;
+  --treeview_borders_color: #515151;
+  --column_header_color: #8f8f8f;
+  --button_bg_color: #3c3c3c;
+  --button_hover_bg_color: #414141;
+  --button_active_bg_color: #1b1b1b;
+  --button_flat_hover_bg_color: #2e2e2e;
+  --insensitive_fg_color: #929292;
+  --insensitive_bg_color: #2a2a2a;
+  --accent_bg_color: #d13c1c;
+  --accent_color: #fe6823;
+  --accent_hover_bg_color: #e24a29;
+  --accent_active_bg_color: #a93017;
+  --accent_borders_color: #772210;
+  --selected_text_bg_color: rgba(209, 60, 28, 0.8);
+  --link_color: #ff7c57;
+  --link_visited_color: #f8613d;
+  --progress_bg_color: #e24625;
+  --checkradio_bg_color: #d13c1c;
+  --checkradio_borders_color: #1d0804;
+  --check_bg_color: #2c2c2c;
+  --switch_trough_color: #4a4a4a;
+  --focus_border_color: rgba(231, 104, 77, 0.7);
+  --destructive_color: #991121;
+  --destructive_hover_color: #b51427;
+  --destructive_active_color: #700c18;
+  --destructive_borders_color: #3d070d;
+  --scrollbar_slider_color: #a6a6a6;
+  --scale_slider_shadow: inset 0 0 0 1px rgba(0, 0, 0, 0), 0 1px 0 rgba(0, 0, 0, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --bg_color: #2c2c2c;
+    --base_color: #272727;
+    --fg_color: #f7f7f7;
+    --text_color: #ffffff;
+    --borders_color: #131313;
+    --alt_borders_color: #000000;
+    --headerbar_bg_color: #222222;
+    --headerbar_checked_bg_color: #151515;
+    --headerbar_checked_borders_color: #040404;
+    --sidebar_bg_color: #2c2c2c;
+    --menu_color: #1d1d1d;
+    --menu_selected_color: #3c3c3c;
+    --menu_hover_color: #484848;
+    --dark_fill: #202020;
+    --treeview_borders_color: #515151;
+    --column_header_color: #8f8f8f;
+    --button_bg_color: #3c3c3c;
+    --button_hover_bg_color: #414141;
+    --button_active_bg_color: #1b1b1b;
+    --button_flat_hover_bg_color: #2e2e2e;
+    --insensitive_fg_color: #929292;
+    --insensitive_bg_color: #2a2a2a;
+    --accent_bg_color: #d13c1c;
+    --accent_color: #fe6823;
+    --accent_hover_bg_color: #e24a29;
+    --accent_active_bg_color: #a93017;
+    --accent_borders_color: #772210;
+    --selected_text_bg_color: rgba(209, 60, 28, 0.8);
+    --link_color: #ff7c57;
+    --link_visited_color: #f8613d;
+    --progress_bg_color: #e24625;
+    --checkradio_bg_color: #d13c1c;
+    --checkradio_borders_color: #1d0804;
+    --check_bg_color: #2c2c2c;
+    --switch_trough_color: #4a4a4a;
+    --focus_border_color: rgba(231, 104, 77, 0.7);
+    --destructive_color: #991121;
+    --destructive_hover_color: #b51427;
+    --destructive_active_color: #700c18;
+    --destructive_borders_color: #3d070d;
+    --scrollbar_slider_color: #a6a6a6;
+    --scale_slider_shadow: inset 0 0 0 1px rgba(0, 0, 0, 0), 0 1px 0 rgba(0, 0, 0, 0.1);
+  }
+}
+
+:root {
+  /* spacing */
+  --menu_margin: 8px;
+  --headerbar_spacing: 6px;
+  --button_padding_y: 4px;
+  --button_padding_x: 9px;
+  --text_button_padding_x: 16px;
+  --entry_padding_x: 8px;
+  --entry_spacing: 6px;
+  --rich_list_padding_y: 8px;
+  --rich_list_padding_x: 12px;
+  /* radius */
+  --check_radius: 3px;
+  --levelbar_radius: 5px;
+  --button_radius: 6px;
+  --menu_radius: 8px;
+  --switch_radius: 14px;
+  --window_radius: 15px;
+  /* size */
+  --button_min_height: 24px;
+  --entry_min_height: 32px;
+  --headerbar_min_height: 46px;
+  --navigation_row_min_height: 36px;
+  --rich_list_row_min_height: 32px;
+  --switch_slider_size: 20px;
+  --scale_slider_size: 20px;
+  --check_size: 14px;
+  --levelbar_size: 9px;
+  --icon_size: 16px;
+  /* opacity */
+  --dim_label_opacity: 0.55;
+  --font-sans: "Ubuntu Sans", Ubuntu, system-ui, sans-serif;
+  --font-mono: "Ubuntu Sans Mono", "Ubuntu Mono", monospace;
+}
+
+.large-title { font-family: var(--font-sans); font-size: 35.201px; font-weight: 300; }
+.title-1 { font-family: var(--font-sans); font-size: 29.334px; font-weight: 800; }
+.title-2 { font-family: var(--font-sans); font-size: 22.001px; font-weight: 800; }
+.title-3 { font-family: var(--font-sans); font-size: 22.001px; font-weight: 700; }
+.title-4 { font-family: var(--font-sans); font-size: 19.067px; font-weight: 700; }
+.heading { font-family: var(--font-sans); font-size: 16.134px; font-weight: 700; }
+.body { font-family: var(--font-sans); font-size: 16.134px; font-weight: 400; }
+.caption-heading { font-family: var(--font-sans); font-size: 13.2px; font-weight: 700; }
+.caption { font-family: var(--font-sans); font-size: 13.2px; font-weight: 400; }

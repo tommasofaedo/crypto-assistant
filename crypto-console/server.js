@@ -11,6 +11,9 @@ const cfg = load();
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+// Design system Yaru servito come statico: il frontend carica /yaru/tokens.css e /yaru/yaru.css
+// direttamente dalla cartella sorgente, senza duplicare i file in public/.
+app.use('/yaru', express.static(path.join(__dirname, 'design', 'yaru')));
 
 // Upload CSV in una cartella temporanea del sistema (max 15 MB). Il file viene letto dal
 // motore (reconcile) e poi cancellato: la console non persiste nulla.

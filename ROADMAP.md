@@ -6,6 +6,29 @@ Miglioramenti pianificati, in ordine di priorità.
 
 ## ✅ Completati
 
+### Console: restyle UI sul design system Yaru (06/10/2026)
+L'interfaccia della console (prima CSS ad hoc, tema scuro fatto a mano) è stata rifatta sul **design
+system Yaru** (tema predefinito di Ubuntu), che vive in `crypto-console/design/yaru/` (`YARU.md`,
+`tokens.css`, `yaru.css`, `demo.html`, `CLAUDE-snippet.md`).
+
+**Come:** `server.js` monta `design/yaru/` come statico su **`/yaru`** (fonte unica, nessun file
+duplicato in `public/`); l'`index.html` carica `/yaru/tokens.css` poi `/yaru/yaru.css` poi il layer
+d'app, con classe `yaru` su `<body>` e tema che segue il sistema (light/dark automatico). Markup
+ricostruito con le classi `yaru-*`: `yaru-headerbar`, `yaru-button` (`suggested-action` solo
+sull'azione principale di ogni vista), `yaru-entry`, `yaru-choice`/`yaru-check`, `yaru-frame view`
+per i gruppi di controlli, `yaru-columnview` per tutte le tabelle.
+
+**Layer d'app (`public/style.css`) riscritto da zero**, solo con i token (bordi 1px, niente ombre né
+gradienti, un solo accento): contiene layout + i componenti che Yaru non ha (card profilo, tabelle
+finanziarie, modale, select, file input), tutti costruiti sui token. P&L verde/rosso resta col segno
+esplicito (il colore è solo rinforzo). Fix: `[hidden] { display:none !important }` perché i
+componenti Yaru impostano `display` esplicito, che vinceva sull'attributo `hidden`.
+
+Unica modifica JS: la tabella phantom generata a runtime ora ha classe `yaru-columnview`. Aggiunto
+`crypto-console/CLAUDE.md` con la regola "ogni interfaccia segue Yaru". Validato con screenshot
+headless (Chrome CDP) in tema chiaro e scuro, home + dettaglio. Resta aperta solo una scelta cosmetica:
+sostituire l'emoji 📨 (badge "Telegram configurato" sulle card) con un'icona simbolica a tinta unica.
+
 ### Monorepo + console multi-cliente: anagrafica, valutazione P&L, valori live (06/10/2026)
 Lavoro sulla console per renderla scalabile all'aumentare dei clienti (ognuno un profilo con la sua
 chat Telegram), mantenendo il principio **stesse regole per tutti, numeri di ognuno separati**.

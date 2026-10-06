@@ -72,6 +72,8 @@ tr:last-child td { border-bottom: none; }
 
 .home-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
 .home-head #btn-new { margin-left: auto; }
+.valuation { margin: 0 0 10px; font-size: 14px; }
+.valuation .amt { font-variant-numeric: tabular-nums; font-weight: 600; }
 #home-count { margin: 0 0 14px; }
 button.mini { font-size: 12px; padding: 4px 10px; margin-left: 8px; vertical-align: middle; }
 td input, th input { width: 120px; background: var(--panel2); border: 1px solid var(--line); color: var(--text); border-radius: 5px; padding: 4px 6px; text-align: right; font-variant-numeric: tabular-nums; }
@@ -82,6 +84,8 @@ tr.changed td { background: #1b2430; }
 .modal { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
 .modal[hidden] { display: none; } /* l'attributo hidden deve vincere sul display:flex qui sopra */
 .modal-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; width: 100%; max-width: 420px; }
+.modal-card.modal-wide { max-width: 760px; }
+.modal-card .table-wrap { max-height: 60vh; overflow-y: auto; }
 .modal-card h3 { margin: 0 0 16px; }
 .modal .form { display: flex; flex-direction: column; gap: 12px; }
 .modal .form label { display: flex; flex-direction: column; gap: 4px; color: var(--muted); font-size: 13px; }

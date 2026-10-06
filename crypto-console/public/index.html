@@ -71,6 +71,7 @@
         <button id="btn-save-pf" class="mini" hidden>Salva</button>
         <button id="btn-cancel-pf" class="mini secondary" hidden>Annulla</button>
       </h3>
+      <p id="pf-valuation" class="valuation"></p>
       <div class="table-wrap"><table id="pf-table"></table></div>
 
       <div id="report-box" hidden>
@@ -95,8 +96,7 @@
         </div>
       </div>
 
-      <h3>Storico recente</h3>
-      <div class="table-wrap"><table id="hist-table"></table></div>
+      <h3>Storico <button id="btn-hist" class="mini secondary">Apri storico</button></h3>
     </section>
   </main>
 
@@ -117,6 +117,15 @@
         <button class="secondary" id="nf-cancel">Annulla</button>
         <button id="nf-create">Crea profilo</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modale: storico snapshot del profilo (a richiesta) -->
+  <div id="modal-hist" class="modal" hidden>
+    <div class="modal-card modal-wide">
+      <h3>Storico <span class="muted" id="hist-title"></span></h3>
+      <div class="table-wrap"><table id="hist-table"></table></div>
+      <div class="modal-actions"><button class="secondary" id="hist-close">Chiudi</button></div>
     </div>
   </div>
 

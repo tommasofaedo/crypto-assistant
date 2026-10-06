@@ -82,6 +82,7 @@ function profileCard(p) {
   card.append(
     row('asset', String(p.assets)),
     row('valore (ultima istantanea)', eur(p.snapshotValue)),
+    pnlRow(p.pnlEur, p.pnlPct),
     row('ultima run', p.lastRun ? new Date(p.lastRun).toLocaleDateString('it-IT') : '—'),
   );
   if ((p.tags || []).length) {
@@ -92,6 +93,11 @@ function profileCard(p) {
   return card;
 }
 const row = (k, v) => el('div', { className: 'row' }, el('span', {}, k), el('span', { className: 'val' }, v));
+// Riga P&L colorata per la card (guadagno/perdita d'istantanea del cliente); '—' se costo ignoto.
+const pnlRow = (eurVal, pctVal) => {
+  const text = eurVal == null ? '—' : `${eurVal >= 0 ? '+' : ''}${eur(eurVal)} (${pct(pctVal)})`;
+  return el('div', { className: 'row' }, el('span', {}, 'P&L (istantanea)'), el('span', { className: 'val ' + cls(eurVal) }, text));
+};
 
 // ---------- DETTAGLIO ----------
 let current = null;
@@ -182,19 +188,47 @@ async function doSaveTelegram() {
   } catch (e) { showErr(e.message); } finally { busy(false); }
 }
 
+// P&L d'istantanea di un singolo holding (null se manca il prezzo medio → costo ignoto).
+function assetPnl(h) {
+  if (typeof h.avgBuyPrice !== 'number' || typeof h.quantity !== 'number' || typeof h.valueAtSnapshot !== 'number') return null;
+  const cost = h.avgBuyPrice * h.quantity;
+  return { cost, pnl: h.valueAtSnapshot - cost, pct: cost > 0 ? (h.valueAtSnapshot - cost) / cost * 100 : null };
+}
+
+// Riga valutazione globale sotto il titolo Portafoglio: guadagno/perdita sull'ultima istantanea.
+function renderValuation(pf) {
+  const box = $('#pf-valuation');
+  box.textContent = '';
+  const holdings = (pf && pf.holdings) || [];
+  let cost = 0, value = 0, covered = 0;
+  for (const h of holdings) { const p = assetPnl(h); if (p) { cost += p.cost; value += h.valueAtSnapshot; covered++; } }
+  if (!covered) { box.hidden = true; return; }
+  box.hidden = false;
+  const pnl = value - cost;
+  const pctVal = cost > 0 ? pnl / cost * 100 : null;
+  box.append(
+    document.createTextNode('Valutazione (ultima istantanea): investito ' + eur(cost) + ' · valore ' + eur(value) + ' · '),
+    el('span', { className: 'amt ' + cls(pnl) }, `${pnl >= 0 ? '+' : ''}${eur(pnl)} (${pct(pctVal)})`),
+  );
+  if (covered < holdings.length) box.append(document.createTextNode(` · su ${covered} di ${holdings.length} asset con prezzo medio`));
+}
+
 function renderPortfolioTable(pf) {
   const t = $('#pf-table');
   t.textContent = '';
   $('#pf-note').textContent = editingPf ? '(modifica: quantità e avg sono scrivibili)' : '(quantità sovrane)';
+  if (editingPf) $('#pf-valuation').hidden = true; else renderValuation(pf);
   if (!editingPf && (!pf || !pf.holdings?.length)) { t.append(el('caption', {}, 'nessun holding')); return; }
 
   if (!editingPf) {
-    t.append(headRow(['Asset', 'Quantità', 'Disponibile', 'Avg €', 'Valore istantanea']));
+    t.append(headRow(['Asset', 'Quantità', 'Disponibile', 'Avg €', 'Valore istantanea', 'P&L istantanea']));
     const tb = el('tbody');
     for (const h of (pf.holdings || [])) {
+      const p = assetPnl(h);
       tb.append(el('tr', {},
         td(h.symbol, 'l'), td(num(h.quantity, 8)), td(num(h.availableForTrading ?? h.quantity, 8)),
         td(h.avgBuyPrice != null ? num(h.avgBuyPrice, 2) : '—'), td(eur(h.valueAtSnapshot)),
+        p ? tdCls(`${p.pnl >= 0 ? '+' : ''}${eur(p.pnl)} (${pct(p.pct)})`, cls(p.pnl)) : td('—'),
       ));
     }
     t.append(tb);
@@ -237,7 +271,18 @@ function togglePfEdit(on) {
 
 function renderAnalysis(data) {
   $('#report-box').hidden = false;
-  $('#an-meta').textContent = `F&G ${data.fearGreed?.value ?? '—'} · totale ${eur(data.totalValueEur)} · ${new Date(data.generatedAt).toLocaleString('it-IT')}`;
+  // P&L globale "live" dai dati d'analisi (costo = valore − pnl, sommati sugli asset con P&L noto).
+  let lp = 0, lc = 0, hasPnl = false;
+  for (const h of data.holdings) {
+    if (typeof h.pnlEur === 'number') { lp += h.pnlEur; lc += (h.valueEur || 0) - h.pnlEur; hasPnl = true; }
+  }
+  const meta = $('#an-meta');
+  meta.textContent = `F&G ${data.fearGreed?.value ?? '—'} · totale ${eur(data.totalValueEur)} · `;
+  if (hasPnl) {
+    meta.append(el('span', { className: cls(lp) }, `P&L ${lp >= 0 ? '+' : ''}${eur(lp)}${lc > 0 ? ` (${pct(lp / lc * 100)})` : ''}`));
+    meta.append(document.createTextNode(' · '));
+  }
+  meta.append(document.createTextNode(new Date(data.generatedAt).toLocaleString('it-IT')));
   const t = $('#an-table');
   t.textContent = '';
   t.append(headRow(['Asset', 'Prezzo', '24h', 'Valore', 'Alloc', 'P&L', 'Segnale', 'Score', 'RSI']));
@@ -486,6 +531,13 @@ async function doCreateProfile() {
   if (warn) showErr('Profilo creato, ma: ' + warn + ' Correggi qui sotto e salva.');
 }
 
+// ---------- storico (modale) ----------
+function openHistory() {
+  $('#hist-title').textContent = '— ' + ($('#d-name').textContent || current || '');
+  $('#modal-hist').hidden = false;
+}
+function closeHistory() { $('#modal-hist').hidden = true; }
+
 // ---------- init ----------
 $('#back').onclick = showHome;
 $('#title').onclick = showHome;
@@ -511,4 +563,8 @@ $('#q').addEventListener('input', renderProfiles);
 $('#filter-tag').addEventListener('change', renderProfiles);
 $('#sort').addEventListener('change', renderProfiles);
 $('#show-archived').addEventListener('change', renderProfiles);
+$('#btn-hist').onclick = openHistory;
+$('#hist-close').onclick = closeHistory;
+$('#modal-hist').addEventListener('click', e => { if (e.target.id === 'modal-hist') closeHistory(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeHistory(); } });
 showHome().catch(e => { $('#home-empty').hidden = false; $('#home-empty').textContent = 'Errore: ' + e.message; });

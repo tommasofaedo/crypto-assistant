@@ -66,8 +66,27 @@ function telegramConfigured(dataDir, name) {
   }
 }
 
+// Valutazione P&L sull'ultima istantanea (nessuna rete): per ogni holding con prezzo medio noto
+// confronta valueAtSnapshot col costo (avgBuyPrice × quantity). Gli holding senza avgBuyPrice sono
+// esclusi dal P&L (costo ignoto) ma segnalati da `covered < total`.
+function valuation(holdings) {
+  let cost = 0, value = 0, covered = 0;
+  const total = (holdings || []).length;
+  for (const h of holdings || []) {
+    if (typeof h.avgBuyPrice === 'number' && typeof h.quantity === 'number' && typeof h.valueAtSnapshot === 'number') {
+      cost += h.avgBuyPrice * h.quantity;
+      value += h.valueAtSnapshot;
+      covered++;
+    }
+  }
+  const pnlEur = covered ? value - cost : null;
+  const pnlPct = covered && cost > 0 ? (pnlEur / cost) * 100 : null;
+  return { cost, value, pnlEur, pnlPct, covered, total };
+}
+
 // Riassunto leggero per la home (nessuna chiamata di rete): usa valueAtSnapshot e l'ultimo snapshot.
-// Include i metadati anagrafici così la Home può mostrare nome leggibile, tag e stato archiviato.
+// Include i metadati anagrafici e il P&L d'istantanea così la Home mostra, per cliente, nome
+// leggibile, tag, stato archiviato e se è complessivamente in guadagno o in perdita.
 function summary(dataDir, name) {
   const pf = readPortfolio(dataDir, name);
   const hist = readJson(path.join(dataDir, safeName(name), 'history.json'), []);
@@ -75,6 +94,7 @@ function summary(dataDir, name) {
   const assets = pf?.holdings?.length ?? 0;
   const snapshotValue = (pf?.holdings ?? []).reduce((s, h) => s + (h.valueAtSnapshot || 0), 0);
   const meta = readMeta(dataDir, name);
+  const val = valuation(pf?.holdings);
   return {
     name,
     displayName: meta.displayName,
@@ -83,9 +103,11 @@ function summary(dataDir, name) {
     telegramConfigured: telegramConfigured(dataDir, name),
     assets,
     snapshotValue,
+    pnlEur: val.pnlEur,
+    pnlPct: val.pnlPct,
     updatedAt: pf?.updatedAt ?? null,
     lastRun: lastDate,
   };
 }
 
-module.exports = { safeName, list, assertExists, readPortfolio, readHistory, readMeta, summary };
+module.exports = { safeName, list, assertExists, readPortfolio, readHistory, readMeta, valuation, summary };

@@ -312,6 +312,24 @@ comportamentale (`feedback_no_handauthored_sell`) in un blocco tecnico.
 
 ---
 
+### 11. Rifinire il profilo `ilariarosolen` con `sync-app` (attesa chiavi CDC)
+**Impatto:** medio — dati reali al posto delle stime  
+**Sforzo:** basso (pochi minuti una volta avute le chiavi)  
+**Stato:** 🔲 in attesa — aperto 06/10/2026
+
+Il portafoglio di `ilariarosolen` è stato **seminato dal suo CSV** (quantità BTC/ETH/SOL corrette),
+ma con `avgBuyPrice` **stimato** (EUR speso / qty, premi inclusi) e `availableForTrading`
+**provvisorio** (0 su ETH/SOL staked, prudenziale). I campi `CDC_API_KEY`/`CDC_API_SECRET` nel suo
+`.env` sono vuoti in attesa delle sue chiavi Crypto.com **in sola lettura**.
+
+**Quando arrivano le chiavi:** incollarle nel suo `.env`, poi `PROFILE=ilariarosolen node sync-app.js`
+→ aggiorna `availableForTrading` ai saldi live (scorpora lo staking) e permette di correggere
+l'`avgBuyPrice`. Il push sul cloud è automatico (`clientPublish.js`), quindi niente da ricordare
+lato repo privato. (Il report push intanto NON mostra il P&L, quindi la stima non è mai arrivata
+al cliente.)
+
+---
+
 ## 🔮 Da valutare — emersi dalla revisione 08/07/2026
 
 - **Backtest dei nuovi pesi/parametri**: validare lo scoring regime-aware e i parametri di `data/strategy.json` (tetti, soglie tilt) su dati storici prima di fidarsi ciecamente. Priorità alta: ora i pesi sono ragionati ma non validati empiricamente.

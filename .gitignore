@@ -25,3 +25,5 @@ SKILL.md
 graphify-out/
 skills.txt.txt
 token_chat.txt
+# Impostazioni locali di Claude Code (per-macchina, non parte del progetto)
+.claude/

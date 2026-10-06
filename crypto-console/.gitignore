@@ -1,0 +1,3 @@
+node_modules/
+# Config con i path locali della macchina (ognuno il suo)
+config.json

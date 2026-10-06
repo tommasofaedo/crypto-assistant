@@ -1,0 +1,380 @@
+'use strict';
+
+const $ = sel => document.querySelector(sel);
+const el = (tag, props = {}, ...kids) => {
+  const n = Object.assign(document.createElement(tag), props);
+  for (const k of kids) n.append(k);
+  return n;
+};
+const api = async (url, opts) => {
+  const r = await fetch(url, opts);
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+  return data;
+};
+
+const eur = (n, d = 2) => n == null ? '—' : '€' + Number(n).toLocaleString('it-IT', { minimumFractionDigits: d, maximumFractionDigits: d });
+const pct = n => n == null ? '—' : (n >= 0 ? '+' : '') + Number(n).toFixed(2) + '%';
+const num = (n, d = 2) => n == null ? '—' : Number(n).toFixed(d);
+const cls = n => n == null ? '' : n >= 0 ? 'pos' : 'neg';
+
+// ---------- HOME ----------
+async function showHome() {
+  $('#detail').hidden = true;
+  $('#home').hidden = false;
+  const box = $('#profiles');
+  box.textContent = '';
+  const { profiles } = await api('/api/profiles');
+  $('#home-empty').hidden = profiles.length > 0;
+  for (const p of profiles) {
+    const card = el('div', { className: 'card', onclick: () => showDetail(p.name) },
+      el('h3', {}, p.name),
+      row('asset', String(p.assets)),
+      row('valore (ultima istantanea)', eur(p.snapshotValue)),
+      row('ultima run', p.lastRun ? new Date(p.lastRun).toLocaleDateString('it-IT') : '—'),
+    );
+    box.append(card);
+  }
+}
+const row = (k, v) => el('div', { className: 'row' }, el('span', {}, k), el('span', { className: 'val' }, v));
+
+// ---------- DETTAGLIO ----------
+let current = null;
+let currentPf = null;     // ultimo portafoglio caricato
+let editingPf = false;    // modalità modifica portafoglio
+let lastReconcile = null; // ultimo risultato di riconciliazione
+
+async function showDetail(name) {
+  current = name;
+  editingPf = false;
+  $('#home').hidden = true;
+  $('#detail').hidden = false;
+  $('#report-box').hidden = true;
+  $('#csv-box').hidden = true;
+  $('#csvfile').value = '';
+  $('#d-error').hidden = true;
+  $('#d-name').textContent = name;
+  $('#d-meta').textContent = 'caricamento…';
+  const { portfolio, history } = await api('/api/profiles/' + name);
+  currentPf = portfolio;
+  $('#d-meta').textContent = portfolio
+    ? `${portfolio.holdings.length} asset · aggiornato ${portfolio.updatedAt || '—'} · fonte ${portfolio.source || '—'}`
+    : 'portfolio.json non leggibile';
+  togglePfEdit(false);
+  renderHistory(history);
+  loadTelegram(name);
+}
+
+// Carica chat_id/budget Telegram del profilo nel pannello (fallo in background: un errore qui
+// non deve impedire di vedere il resto del profilo).
+async function loadTelegram(name) {
+  $('#tg-chat').value = '';
+  $('#tg-budget').value = 0;
+  $('#tg-note').textContent = '…';
+  try {
+    const t = await api('/api/profiles/' + name + '/telegram');
+    if (name !== current) return; // l'utente ha già cambiato profilo
+    $('#tg-chat').value = t.chatId || '';
+    $('#tg-budget').value = t.budget || 0;
+    $('#tg-note').textContent = t.chatId ? 'chat configurata · riceve i report push' : 'nessuna chat: non riceve push';
+  } catch (e) {
+    if (name === current) $('#tg-note').textContent = 'impostazioni non leggibili: ' + e.message;
+  }
+}
+
+async function doSaveTelegram() {
+  $('#d-error').hidden = true;
+  const chatId = ($('#tg-chat').value || '').trim();
+  const budget = Number($('#tg-budget').value) || 0;
+  busy(true);
+  try {
+    const t = await api(`/api/profiles/${current}/telegram`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId, budget }),
+    });
+    $('#tg-chat').value = t.chatId || '';
+    $('#tg-budget').value = t.budget || 0;
+    $('#tg-note').textContent = t.chatId ? 'salvato · riceve i report push' : 'salvato · nessuna chat: non riceve push';
+  } catch (e) { showErr(e.message); } finally { busy(false); }
+}
+
+function renderPortfolioTable(pf) {
+  const t = $('#pf-table');
+  t.textContent = '';
+  $('#pf-note').textContent = editingPf ? '(modifica: quantità e avg sono scrivibili)' : '(quantità sovrane)';
+  if (!editingPf && (!pf || !pf.holdings?.length)) { t.append(el('caption', {}, 'nessun holding')); return; }
+
+  if (!editingPf) {
+    t.append(headRow(['Asset', 'Quantità', 'Disponibile', 'Avg €', 'Valore istantanea']));
+    const tb = el('tbody');
+    for (const h of (pf.holdings || [])) {
+      tb.append(el('tr', {},
+        td(h.symbol, 'l'), td(num(h.quantity, 8)), td(num(h.availableForTrading ?? h.quantity, 8)),
+        td(h.avgBuyPrice != null ? num(h.avgBuyPrice, 2) : '—'), td(eur(h.valueAtSnapshot)),
+      ));
+    }
+    t.append(tb);
+    return;
+  }
+
+  // modalità modifica: input per quantità e avg, + riga per aggiungere un asset
+  t.append(headRow(['Asset', 'Quantità', 'Avg €', '']));
+  const tb = el('tbody');
+  for (const h of (pf.holdings || [])) {
+    tb.append(el('tr', {},
+      td(h.symbol, 'l'),
+      tdWrap(numInput(`q-${h.symbol}`, h.quantity)),
+      tdWrap(numInput(`a-${h.symbol}`, h.avgBuyPrice)),
+      td(''),
+    ));
+  }
+  // riga nuovo asset
+  tb.append(el('tr', {},
+    tdWrap(Object.assign(document.createElement('input'), { id: 'new-sym', className: 'sym', placeholder: 'SIMB' })),
+    tdWrap(numInput('new-q', null, 'quantità')),
+    tdWrap(numInput('new-a', null, 'avg €')),
+    td('nuovo'),
+  ));
+  t.append(tb);
+}
+
+function numInput(id, val, ph) {
+  return Object.assign(document.createElement('input'),
+    { id, type: 'number', step: 'any', value: val != null ? val : '', placeholder: ph || '' });
+}
+
+function togglePfEdit(on) {
+  editingPf = on;
+  $('#btn-edit-pf').hidden = on;
+  $('#btn-save-pf').hidden = !on;
+  $('#btn-cancel-pf').hidden = !on;
+  renderPortfolioTable(currentPf);
+}
+
+function renderAnalysis(data) {
+  $('#report-box').hidden = false;
+  $('#an-meta').textContent = `F&G ${data.fearGreed?.value ?? '—'} · totale ${eur(data.totalValueEur)} · ${new Date(data.generatedAt).toLocaleString('it-IT')}`;
+  const t = $('#an-table');
+  t.textContent = '';
+  t.append(headRow(['Asset', 'Prezzo', '24h', 'Valore', 'Alloc', 'P&L', 'Segnale', 'Score', 'RSI']));
+  const tb = el('tbody');
+  for (const h of data.holdings) {
+    tb.append(el('tr', {},
+      td(h.symbol, 'l'), td(eur(h.priceEur, h.priceEur < 1 ? 4 : 2)),
+      tdCls(pct(h.change24hPct), cls(h.change24hPct)), td(eur(h.valueEur)),
+      td(num(h.allocationPct, 1) + '%'),
+      tdCls(h.pnlPct != null ? pct(h.pnlPct) : '—', cls(h.pnlPct)),
+      td(h.signal || '—'), tdCls(h.score != null ? (h.score > 0 ? '+' : '') + h.score : '—', cls(h.score)),
+      td(num(h.rsi, 1)),
+    ));
+  }
+  t.append(tb);
+  $('#report').textContent = data.report || '(nota Hari Seldon disattivata)';
+}
+
+function renderHistory(hist) {
+  const t = $('#hist-table');
+  t.textContent = '';
+  if (!hist?.length) { t.append(el('caption', {}, 'nessuno snapshot')); return; }
+  t.append(headRow(['Data', 'Asset', 'Segnale', 'Score', 'RSI', 'Prezzo €']));
+  const tb = el('tbody');
+  for (const e of hist) {
+    tb.append(el('tr', {},
+      td(new Date(e.date).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }), 'l'),
+      td(e.symbol, 'l'), td(e.signal || '—'),
+      tdCls(e.score != null ? (e.score > 0 ? '+' : '') + e.score : '—', cls(e.score)),
+      td(num(e.rsi, 1)), td(e.priceEur != null ? num(e.priceEur, e.priceEur < 1 ? 4 : 2) : '—'),
+    ));
+  }
+  t.append(tb);
+}
+
+function renderReconcile(data) {
+  lastReconcile = data;
+  $('#csv-box').hidden = false;
+  const s = data.summary;
+  $('#csv-summary').textContent =
+    `${data.uploadedFile || 'master'} · ${s.uploadedRows} righe caricate · ${s.newRows} nuove · ${s.duplicatesSkipped} duplicati ignorati · master ${s.masterRows} righe`;
+
+  const addCell = a => a && a.total > EPS ? `+${num(a.total, 8)}` : '—';
+  const t = $('#csv-table');
+  t.textContent = '';
+  t.append(headRow(['Asset', 'Sovrano', 'CSV totale', 'Δ', '+Acquisti', '+Premi', 'Proposta', '']));
+  const tb = el('tbody');
+  for (const a of data.assets) {
+    const raise = a.direction === 'raise';
+    const badge = raise ? el('span', { className: 'badge pos' }, 'alza')
+                        : el('span', { className: 'badge' }, 'tieni');
+    tb.append(el('tr', {},
+      td(a.symbol, 'l'), td(num(a.sovereign, 8)), td(num(a.csvSum, 8)),
+      tdCls((a.delta >= 0 ? '+' : '') + num(a.delta, 8), cls(a.delta)),
+      td(addCell(a.added?.purchases)), td(addCell(a.added?.rewards)),
+      tdWrap(numInput(`rec-${a.symbol}`, a.suggested)), tdWrap(badge),
+    ));
+  }
+  t.append(tb);
+
+  const ph = $('#csv-phantom');
+  ph.textContent = '';
+  if (data.phantom?.length) {
+    ph.append(el('p', { className: 'muted', style: 'margin:12px 0 6px' },
+      `Asset nel CSV ma non nel portafoglio (${data.phantom.length}) — dust/airdrop/nuovi. Metti una quantità per aggiungerli:`));
+    const pt = el('table');
+    pt.append(headRow(['Asset', 'CSV', 'Quantità da aggiungere']));
+    const ptb = el('tbody');
+    for (const p of data.phantom) {
+      ptb.append(el('tr', {}, td(p.symbol, 'l'), td(num(p.csvSum, 6)), tdWrap(numInput(`recph-${p.symbol}`, null, '0 = ignora'))));
+    }
+    pt.append(ptb);
+    ph.append(el('div', { className: 'table-wrap' }, pt));
+  }
+}
+const EPS = 1e-8;
+
+// helpers tabella
+const headRow = cols => { const tr = el('tr'); for (const c of cols) tr.append(el('th', {}, c)); return el('thead', {}, tr); };
+const tdWrap = node => { const d = el('td'); d.append(node); return d; };
+const td = (v, align) => el('td', align === 'l' ? { style: 'text-align:left' } : {}, String(v));
+const tdCls = (v, c) => { const d = el('td', {}, String(v)); if (c) d.className = c; return d; };
+
+// ---------- azioni ----------
+function busy(on) {
+  $('#busy').hidden = !on;
+  for (const id of ['#btn-analyze', '#btn-sync', '#btn-csv', '#btn-apply-csv', '#btn-new', '#btn-save-pf', '#btn-save-tg']) {
+    const n = $(id); if (n) n.disabled = on;
+  }
+}
+async function doAnalyze() {
+  $('#d-error').hidden = true;
+  busy(true);
+  try {
+    const budget = Number($('#budget').value) || 0;
+    const ai = $('#useai').checked;
+    const data = await api(`/api/profiles/${current}/analyze`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ budget, ai }),
+    });
+    renderAnalysis(data);
+  } catch (e) { showErr(e.message); } finally { busy(false); }
+}
+async function doSync() {
+  $('#d-error').hidden = true;
+  busy(true);
+  try {
+    const r = await api(`/api/profiles/${current}/sync`, { method: 'POST' });
+    if (r.portfolio) currentPf = r.portfolio;
+    renderPortfolioTable(currentPf);
+    if (!r.ok) showErr('Sync completato con avvisi:\n' + r.log.slice(-400));
+  } catch (e) { showErr(e.message); } finally { busy(false); }
+}
+async function doCsv() {
+  const f = $('#csvfile').files[0];
+  if (!f) { showErr('Seleziona un file CSV da riconciliare.'); return; }
+  $('#d-error').hidden = true;
+  busy(true);
+  try {
+    const fd = new FormData();
+    fd.append('csv', f);
+    const r = await fetch(`/api/profiles/${current}/csv`, { method: 'POST', body: fd });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    renderReconcile(data);
+  } catch (e) { showErr(e.message); } finally { busy(false); }
+}
+function showErr(msg) { const n = $('#d-error'); n.textContent = msg; n.hidden = false; }
+
+const val = id => { const n = $('#' + id); return n ? parseFloat(n.value) : NaN; };
+
+// Scrittura centralizzata: conferma → POST /apply → ricarica. updates = { SYM: n | {quantity,avgBuyPrice} }.
+async function applyUpdates(updates, title) {
+  const keys = Object.keys(updates);
+  if (!keys.length) { showErr('Nessuna modifica da applicare.'); return; }
+  const lines = keys.map(s => {
+    const u = updates[s];
+    return typeof u === 'number' ? `  ${s} → quantità ${u}` :
+      `  ${s} → ${['quantity' in u ? 'q ' + u.quantity : '', 'avgBuyPrice' in u ? 'avg ' + u.avgBuyPrice : ''].filter(Boolean).join(', ')}`;
+  });
+  if (!confirm(`${title}\n\n${lines.join('\n')}\n\nScrivo queste modifiche sul profilo ${current}?`)) return;
+  $('#d-error').hidden = true;
+  busy(true);
+  try {
+    const data = await api(`/api/profiles/${current}/apply`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ updates }),
+    });
+    const msg = [];
+    if (data.created?.length) msg.push('creati: ' + data.created.map(c => c.symbol).join(', '));
+    if (data.applied?.length) msg.push('aggiornati: ' + data.applied.map(a => a.symbol).join(', '));
+    if (data.detectedSells?.length) msg.push('cali rilevati (cooldown armato): ' + data.detectedSells.map(s => s.symbol).join(', '));
+    await showDetail(current);
+    alert('Fatto.\n' + (msg.join('\n') || 'nessuna variazione effettiva'));
+  } catch (e) { showErr(e.message); } finally { busy(false); }
+}
+
+// Applica le quantità proposte dalla riconciliazione (+ phantom con quantità > 0).
+function doApplyCsv() {
+  if (!lastReconcile) return;
+  const updates = {};
+  for (const a of lastReconcile.assets) {
+    const v = val('rec-' + a.symbol);
+    if (!isNaN(v) && Math.abs(v - a.sovereign) > EPS) updates[a.symbol] = v;
+  }
+  for (const p of (lastReconcile.phantom || [])) {
+    const v = val('recph-' + p.symbol);
+    if (!isNaN(v) && v > EPS) updates[p.symbol] = v;
+  }
+  applyUpdates(updates, 'Applica quantità dalla riconciliazione CSV');
+}
+
+// Salva le modifiche manuali al portafoglio (quantità/avg + eventuale nuovo asset).
+function doSavePf() {
+  const updates = {};
+  for (const h of (currentPf.holdings || [])) {
+    const u = {};
+    const q = val('q-' + h.symbol);
+    if (!isNaN(q) && Math.abs(q - h.quantity) > EPS) u.quantity = q;
+    const aEl = $('#a-' + h.symbol);
+    if (aEl && aEl.value !== '') {
+      const a = parseFloat(aEl.value);
+      if (!isNaN(a) && a !== h.avgBuyPrice) u.avgBuyPrice = a;
+    }
+    if (Object.keys(u).length) updates[h.symbol] = u;
+  }
+  const sym = ($('#new-sym').value || '').trim().toUpperCase();
+  if (sym) {
+    const q = val('new-q');
+    if (isNaN(q) || q <= 0) { showErr('Per il nuovo asset serve una quantità > 0.'); return; }
+    const u = { quantity: q };
+    const a = val('new-a');
+    if (!isNaN(a)) u.avgBuyPrice = a;
+    updates[sym] = u;
+  }
+  applyUpdates(updates, 'Salva modifiche al portafoglio');
+}
+
+async function doNewProfile() {
+  const name = (prompt('Nome del nuovo profilo (lettere, numeri, _ e -):') || '').trim();
+  if (!name) return;
+  try {
+    const data = await api('/api/profiles', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    alert(`Profilo "${data.created}" creato.\n\nProssimi passi:\n- ${data.nextSteps.join('\n- ')}`);
+    await showDetail(data.created);
+  } catch (e) { alert('Errore: ' + e.message); }
+}
+
+// ---------- init ----------
+$('#back').onclick = showHome;
+$('#title').onclick = showHome;
+$('#btn-analyze').onclick = doAnalyze;
+$('#btn-sync').onclick = doSync;
+$('#btn-csv').onclick = doCsv;
+$('#btn-apply-csv').onclick = doApplyCsv;
+$('#btn-new').onclick = doNewProfile;
+$('#btn-edit-pf').onclick = () => togglePfEdit(true);
+$('#btn-cancel-pf').onclick = () => togglePfEdit(false);
+$('#btn-save-pf').onclick = doSavePf;
+$('#btn-save-tg').onclick = doSaveTelegram;
+showHome().catch(e => { $('#home-empty').hidden = false; $('#home-empty').textContent = 'Errore: ' + e.message; });

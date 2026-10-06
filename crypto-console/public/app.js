@@ -103,6 +103,7 @@ const pnlRow = (eurVal, pctVal) => {
 let current = null;
 let currentPf = null;     // ultimo portafoglio caricato
 let editingPf = false;    // modalità modifica portafoglio
+let currentLive = null;   // ultimo aggiornamento prezzi live (null = la tabella mostra l'istantanea)
 let lastReconcile = null; // ultimo risultato di riconciliazione
 
 async function showDetail(name) {
@@ -112,6 +113,7 @@ async function showDetail(name) {
   $('#detail').hidden = false;
   $('#report-box').hidden = true;
   $('#csv-box').hidden = true;
+  currentLive = null; // apertura profilo → la tabella parte dall'istantanea, non dai valori live
   $('#csvfile').value = '';
   $('#d-error').hidden = true;
   $('#d-name').textContent = name;
@@ -213,14 +215,71 @@ function renderValuation(pf) {
   if (covered < holdings.length) box.append(document.createTextNode(` · su ${covered} di ${holdings.length} asset con prezzo medio`));
 }
 
+// "Aggiorna valori": prezzi live → la tabella Portafoglio passa in modalità live (valore/P&L ORA
+// sulle quantità attuali) e la riga valutazione mostra il confronto con l'ultima istantanea.
+async function doUpdateValues() {
+  $('#d-error').hidden = true;
+  busy(true);
+  try {
+    currentLive = await api(`/api/profiles/${current}/value`, { method: 'POST' });
+    renderPortfolioTable(currentPf);
+  } catch (e) { showErr(e.message); } finally { busy(false); }
+}
+
+// Riga valutazione in modalità live: valore ORA + P&L ORA + confronto con l'ultima istantanea.
+function renderLiveSummary() {
+  const box = $('#pf-valuation');
+  box.textContent = '';
+  box.hidden = false;
+  const holdings = currentLive.holdings || [];
+  let cost = 0, pnl = 0, covered = 0;
+  for (const h of holdings) {
+    if (typeof h.pnlEur === 'number') { pnl += h.pnlEur; cost += (h.valueEur || 0) - h.pnlEur; covered++; }
+  }
+  const value = currentLive.totalValueEur || 0;
+  const pctVal = cost > 0 ? pnl / cost * 100 : null;
+  const snap = (currentPf?.holdings || []).reduce((s, h) => s + (h.valueAtSnapshot || 0), 0);
+  const delta = value - snap;
+  const t = new Date(currentLive.generatedAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+  box.append(
+    document.createTextNode(`Valori attuali (${t}): valore ${eur(value)} · `),
+    el('span', { className: 'amt ' + cls(pnl) }, `P&L ${pnl >= 0 ? '+' : ''}${eur(pnl)}${pctVal != null ? ` (${pct(pctVal)})` : ''}`),
+    document.createTextNode(` · vs ultima istantanea ${eur(snap)} `),
+    el('span', { className: cls(delta) }, `(${delta >= 0 ? '+' : ''}${eur(delta)})`),
+  );
+  if (covered < holdings.length) box.append(document.createTextNode(` · P&L su ${covered} di ${holdings.length} asset`));
+}
+
 function renderPortfolioTable(pf) {
   const t = $('#pf-table');
   t.textContent = '';
-  $('#pf-note').textContent = editingPf ? '(modifica: quantità e avg sono scrivibili)' : '(quantità sovrane)';
-  if (editingPf) $('#pf-valuation').hidden = true; else renderValuation(pf);
+  const live = !editingPf && currentLive;
+  $('#pf-note').textContent = editingPf ? '(modifica: quantità e avg sono scrivibili)'
+    : live ? '(valori live sulle quantità attuali)' : '(quantità sovrane)';
+  if (editingPf) $('#pf-valuation').hidden = true;
+  else if (live) renderLiveSummary();
+  else renderValuation(pf);
   if (!editingPf && (!pf || !pf.holdings?.length)) { t.append(el('caption', {}, 'nessun holding')); return; }
 
   if (!editingPf) {
+    // Modalità live: una sola tabella, le quantità attuali del portafoglio con prezzo/valore/P&L ORA.
+    if (live) {
+      const bySym = Object.fromEntries((currentLive.holdings || []).map(h => [h.symbol, h]));
+      t.append(headRow(['Asset', 'Quantità', 'Disponibile', 'Avg €', 'Prezzo ora', 'Valore ora', 'P&L ora']));
+      const tb = el('tbody');
+      for (const h of (pf.holdings || [])) {
+        const l = bySym[h.symbol] || {};
+        tb.append(el('tr', {},
+          td(h.symbol, 'l'), td(num(h.quantity, 8)), td(num(h.availableForTrading ?? h.quantity, 8)),
+          td(h.avgBuyPrice != null ? num(h.avgBuyPrice, 2) : '—'),
+          td(l.priceEur != null ? eur(l.priceEur, l.priceEur < 1 ? 4 : 2) : '—'),
+          td(l.valueEur != null ? eur(l.valueEur) : '—'),
+          typeof l.pnlEur === 'number' ? tdCls(`${l.pnlEur >= 0 ? '+' : ''}${eur(l.pnlEur)} (${pct(l.pnlPct)})`, cls(l.pnlEur)) : td('—'),
+        ));
+      }
+      t.append(tb);
+      return;
+    }
     t.append(headRow(['Asset', 'Quantità', 'Disponibile', 'Avg €', 'Valore istantanea', 'P&L istantanea']));
     const tb = el('tbody');
     for (const h of (pf.holdings || [])) {
@@ -263,6 +322,7 @@ function numInput(id, val, ph) {
 
 function togglePfEdit(on) {
   editingPf = on;
+  if (on) currentLive = null; // la modifica riparte sempre dai valori sovrani, non dal live
   $('#btn-edit-pf').hidden = on;
   $('#btn-save-pf').hidden = !on;
   $('#btn-cancel-pf').hidden = !on;
@@ -369,7 +429,7 @@ const tdCls = (v, c) => { const d = el('td', {}, String(v)); if (c) d.className 
 // ---------- azioni ----------
 function busy(on) {
   $('#busy').hidden = !on;
-  for (const id of ['#btn-analyze', '#btn-sync', '#btn-csv', '#btn-apply-csv', '#btn-new', '#btn-save-pf', '#btn-save-tg', '#btn-save-meta']) {
+  for (const id of ['#btn-analyze', '#btn-sync', '#btn-csv', '#btn-apply-csv', '#btn-new', '#btn-save-pf', '#btn-save-tg', '#btn-save-meta', '#btn-value']) {
     const n = $(id); if (n) n.disabled = on;
   }
 }
@@ -559,6 +619,7 @@ $('#btn-cancel-pf').onclick = () => togglePfEdit(false);
 $('#btn-save-pf').onclick = doSavePf;
 $('#btn-save-tg').onclick = doSaveTelegram;
 $('#btn-save-meta').onclick = doSaveMeta;
+$('#btn-value').onclick = doUpdateValues;
 $('#q').addEventListener('input', renderProfiles);
 $('#filter-tag').addEventListener('change', renderProfiles);
 $('#sort').addEventListener('change', renderProfiles);

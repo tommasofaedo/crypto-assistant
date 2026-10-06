@@ -66,6 +66,13 @@ app.post('/api/profiles/:p/sync', wrap(async (req, res) => {
   res.json({ ...result, portfolio: profiles.readPortfolio(cfg.dataDir, name) });
 }));
 
+// Valori LIVE (SOLA LETTURA): prezzi correnti → valore/P&L ora, senza indicatori né AI (leggero).
+app.post('/api/profiles/:p/value', wrap(async (req, res) => {
+  const name = profiles.assertExists(cfg.dataDir, req.params.p);
+  const data = await withLock(name, () => engine.liveValue(cfg.enginePath, name));
+  res.json(data);
+}));
+
 // Riconciliazione CSV (SOLA LETTURA): upload → reconcile → proposta delta. Nessuna scrittura.
 app.post('/api/profiles/:p/csv', upload.single('csv'), wrap(async (req, res) => {
   const name = profiles.assertExists(cfg.dataDir, req.params.p);

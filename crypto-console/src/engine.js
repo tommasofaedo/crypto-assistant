@@ -62,6 +62,15 @@ async function applyQuantities(enginePath, profile, updates) {
   return data;
 }
 
+// Valori LIVE: prezzi correnti → valore/P&L ora (leggero, niente indicatori/AI). Sola lettura.
+async function liveValue(enginePath, profile) {
+  const { code, out, err } = await run(enginePath, 'value-json.js', ['--profile', profile]);
+  const data = extractJson(out);
+  if (data.error) throw new Error(data.error);
+  if (code !== 0) throw new Error(`value-json uscito con codice ${code}: ${err.slice(-500)}`);
+  return data;
+}
+
 // Legge le impostazioni Telegram del profilo (chat_id, budget) dal suo .env.
 async function telegramGet(enginePath, profile) {
   const { code, out, err } = await run(enginePath, 'set-telegram.js', ['--profile', profile, '--get', '--json']);
@@ -109,4 +118,4 @@ async function metaSet(enginePath, profile, settings) {
   return data;
 }
 
-module.exports = { report, sync, reconcile, applyQuantities, telegramGet, telegramSet, createProfile, metaGet, metaSet };
+module.exports = { report, sync, reconcile, applyQuantities, telegramGet, telegramSet, createProfile, metaGet, metaSet, liveValue };

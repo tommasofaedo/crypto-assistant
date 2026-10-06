@@ -54,6 +54,18 @@ function readMeta(dataDir, name) {
   };
 }
 
+// Solo PRESENZA della chat Telegram (booleano) per il badge in Home: legge il .env del profilo
+// ma NON espone il chat_id né altre credenziali al frontend (le credenziali non transitano).
+function telegramConfigured(dataDir, name) {
+  try {
+    const raw = fs.readFileSync(path.join(dataDir, safeName(name), '.env'), 'utf-8');
+    const m = /^\s*TELEGRAM_CHAT_ID\s*=\s*(.*)$/m.exec(raw);
+    return !!(m && m[1].trim());
+  } catch {
+    return false;
+  }
+}
+
 // Riassunto leggero per la home (nessuna chiamata di rete): usa valueAtSnapshot e l'ultimo snapshot.
 // Include i metadati anagrafici così la Home può mostrare nome leggibile, tag e stato archiviato.
 function summary(dataDir, name) {
@@ -68,6 +80,7 @@ function summary(dataDir, name) {
     displayName: meta.displayName,
     tags: meta.tags,
     archived: meta.archived,
+    telegramConfigured: telegramConfigured(dataDir, name),
     assets,
     snapshotValue,
     updatedAt: pf?.updatedAt ?? null,

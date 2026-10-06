@@ -19,22 +19,77 @@ const num = (n, d = 2) => n == null ? '—' : Number(n).toFixed(d);
 const cls = n => n == null ? '' : n >= 0 ? 'pos' : 'neg';
 
 // ---------- HOME ----------
+let allProfiles = []; // ultimo elenco caricato; i filtri lavorano in locale su questo
+
 async function showHome() {
   $('#detail').hidden = true;
   $('#home').hidden = false;
+  const { profiles } = await api('/api/profiles');
+  allProfiles = profiles;
+  populateTagFilter(profiles);
+  renderProfiles();
+}
+
+// Popola il menu "filtro tag" con l'unione dei tag presenti, preservando la selezione corrente.
+function populateTagFilter(profiles) {
+  const sel = $('#filter-tag');
+  const prev = sel.value;
+  const tags = [...new Set(profiles.flatMap(p => p.tags || []))].sort((a, b) => a.localeCompare(b, 'it'));
+  sel.textContent = '';
+  sel.append(el('option', { value: '' }, 'tutti i tag'));
+  for (const t of tags) sel.append(el('option', { value: t }, t));
+  sel.value = tags.includes(prev) ? prev : '';
+}
+
+// Applica ricerca + filtro tag + ordinamento + visibilità archiviati (tutto client-side).
+function renderProfiles() {
+  const q = ($('#q').value || '').trim().toLowerCase();
+  const tag = $('#filter-tag').value;
+  const sort = $('#sort').value;
+  const showArchived = $('#show-archived').checked;
+
+  const list = allProfiles.filter(p => {
+    if (!showArchived && p.archived) return false;
+    if (tag && !(p.tags || []).includes(tag)) return false;
+    if (q) {
+      const hay = [p.name, p.displayName || '', ...(p.tags || [])].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  list.sort((a, b) => {
+    if (sort === 'value') return (b.snapshotValue || 0) - (a.snapshotValue || 0);
+    if (sort === 'lastRun') return new Date(b.lastRun || 0) - new Date(a.lastRun || 0);
+    return (a.displayName || a.name).localeCompare(b.displayName || b.name, 'it');
+  });
+
   const box = $('#profiles');
   box.textContent = '';
-  const { profiles } = await api('/api/profiles');
-  $('#home-empty').hidden = profiles.length > 0;
-  for (const p of profiles) {
-    const card = el('div', { className: 'card', onclick: () => showDetail(p.name) },
-      el('h3', {}, p.name),
-      row('asset', String(p.assets)),
-      row('valore (ultima istantanea)', eur(p.snapshotValue)),
-      row('ultima run', p.lastRun ? new Date(p.lastRun).toLocaleDateString('it-IT') : '—'),
-    );
-    box.append(card);
+  for (const p of list) box.append(profileCard(p));
+  $('#home-empty').hidden = allProfiles.length > 0;
+  $('#home-count').textContent = allProfiles.length
+    ? `${list.length} di ${allProfiles.length} profili${list.length < allProfiles.length ? ' (filtrati)' : ''}`
+    : '';
+}
+
+function profileCard(p) {
+  const card = el('div', { className: 'card' + (p.archived ? ' archived' : ''), onclick: () => showDetail(p.name) });
+  const head = el('div', { className: 'card-head' }, el('h3', { title: p.displayName || p.name }, p.displayName || p.name));
+  if (p.telegramConfigured) head.append(el('span', { className: 'badge-tg', title: 'chat Telegram configurata' }, '📨'));
+  if (p.archived) head.append(el('span', { className: 'badge-arch', title: 'profilo archiviato' }, 'arch'));
+  card.append(head);
+  if (p.displayName) card.append(el('div', { className: 'sub' }, p.name)); // mostra lo slug tecnico sotto il nome
+  card.append(
+    row('asset', String(p.assets)),
+    row('valore (ultima istantanea)', eur(p.snapshotValue)),
+    row('ultima run', p.lastRun ? new Date(p.lastRun).toLocaleDateString('it-IT') : '—'),
+  );
+  if ((p.tags || []).length) {
+    const chips = el('div', { className: 'chips' });
+    for (const t of p.tags) chips.append(el('span', { className: 'chip' }, t));
+    card.append(chips);
   }
+  return card;
 }
 const row = (k, v) => el('div', { className: 'row' }, el('span', {}, k), el('span', { className: 'val' }, v));
 
@@ -55,14 +110,43 @@ async function showDetail(name) {
   $('#d-error').hidden = true;
   $('#d-name').textContent = name;
   $('#d-meta').textContent = 'caricamento…';
-  const { portfolio, history } = await api('/api/profiles/' + name);
+  const { meta, portfolio, history } = await api('/api/profiles/' + name);
   currentPf = portfolio;
+  $('#d-name').textContent = (meta && meta.displayName) || name;
+  loadMetaForm(meta);
   $('#d-meta').textContent = portfolio
     ? `${portfolio.holdings.length} asset · aggiornato ${portfolio.updatedAt || '—'} · fonte ${portfolio.source || '—'}`
     : 'portfolio.json non leggibile';
   togglePfEdit(false);
   renderHistory(history);
   loadTelegram(name);
+}
+
+// Carica la scheda (meta.json) nel pannello: nome leggibile, tag (CSV), nota, archiviato.
+function loadMetaForm(meta) {
+  $('#m-name').value = meta?.displayName || '';
+  $('#m-tags').value = (meta?.tags || []).join(', ');
+  $('#m-note').value = meta?.note || '';
+  $('#m-archived').checked = !!meta?.archived;
+  $('#m-status').textContent = '';
+}
+
+async function doSaveMeta() {
+  $('#d-error').hidden = true;
+  const displayName = ($('#m-name').value || '').trim();
+  const note = $('#m-note').value || '';
+  const tags = ($('#m-tags').value || '').split(',').map(s => s.trim()).filter(Boolean);
+  const archived = $('#m-archived').checked;
+  busy(true);
+  try {
+    const m = await api(`/api/profiles/${current}/meta`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ displayName, note, tags, archived }),
+    });
+    $('#d-name').textContent = m.displayName || current;
+    $('#m-tags').value = (m.tags || []).join(', '); // riflette dedupe/trim lato motore
+    $('#m-status').textContent = 'salvato';
+  } catch (e) { showErr(e.message); } finally { busy(false); }
 }
 
 // Carica chat_id/budget Telegram del profilo nel pannello (fallo in background: un errore qui
@@ -240,7 +324,7 @@ const tdCls = (v, c) => { const d = el('td', {}, String(v)); if (c) d.className 
 // ---------- azioni ----------
 function busy(on) {
   $('#busy').hidden = !on;
-  for (const id of ['#btn-analyze', '#btn-sync', '#btn-csv', '#btn-apply-csv', '#btn-new', '#btn-save-pf', '#btn-save-tg']) {
+  for (const id of ['#btn-analyze', '#btn-sync', '#btn-csv', '#btn-apply-csv', '#btn-new', '#btn-save-pf', '#btn-save-tg', '#btn-save-meta']) {
     const n = $(id); if (n) n.disabled = on;
   }
 }
@@ -377,4 +461,9 @@ $('#btn-edit-pf').onclick = () => togglePfEdit(true);
 $('#btn-cancel-pf').onclick = () => togglePfEdit(false);
 $('#btn-save-pf').onclick = doSavePf;
 $('#btn-save-tg').onclick = doSaveTelegram;
+$('#btn-save-meta').onclick = doSaveMeta;
+$('#q').addEventListener('input', renderProfiles);
+$('#filter-tag').addEventListener('change', renderProfiles);
+$('#sort').addEventListener('change', renderProfiles);
+$('#show-archived').addEventListener('change', renderProfiles);
 showHome().catch(e => { $('#home-empty').hidden = false; $('#home-empty').textContent = 'Errore: ' + e.message; });

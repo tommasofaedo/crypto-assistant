@@ -16,8 +16,17 @@
     <!-- HOME: griglia profili -->
     <section id="home">
       <div class="home-head">
+        <input type="search" id="q" class="search" placeholder="Cerca nome, slug o tag…">
+        <select id="filter-tag" class="select"><option value="">tutti i tag</option></select>
+        <select id="sort" class="select">
+          <option value="name">nome A→Z</option>
+          <option value="value">valore ↓</option>
+          <option value="lastRun">ultima run ↓</option>
+        </select>
+        <label class="chk"><input type="checkbox" id="show-archived"> mostra archiviati</label>
         <button id="btn-new">+ Nuovo profilo</button>
       </div>
+      <p id="home-count" class="muted"></p>
       <div id="profiles" class="grid"></div>
       <p id="home-empty" class="muted" hidden>Nessun profilo trovato in data/profiles/.</p>
     </section>
@@ -27,6 +36,18 @@
       <button class="link" id="back">← profili</button>
       <h2 id="d-name"></h2>
       <p class="muted" id="d-meta"></p>
+
+      <h3>Scheda profilo <span class="muted">— nome leggibile, tag, nota, archiviazione</span></h3>
+      <div class="controls">
+        <label>Nome leggibile <input type="text" id="m-name" placeholder="es. Mario Rossi"></label>
+        <label>Tag <input type="text" id="m-tags" placeholder="cliente, vip"></label>
+        <label class="chk"><input type="checkbox" id="m-archived"> archiviato</label>
+      </div>
+      <div class="controls">
+        <label class="grow">Nota <input type="text" id="m-note" placeholder="appunti liberi su questo profilo"></label>
+        <button id="btn-save-meta" class="secondary">Salva scheda</button>
+        <span class="muted" id="m-status"></span>
+      </div>
 
       <div class="controls">
         <label>Budget € <input type="number" id="budget" value="0" min="0" step="5"></label>

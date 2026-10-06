@@ -23,9 +23,17 @@ main { padding: 24px; max-width: 1100px; margin: 0 auto; }
 }
 .card:hover { border-color: var(--accent); }
 .card:active { transform: translateY(1px); }
+.card.archived { opacity: .55; }
+.card-head { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+.card-head h3 { margin: 0; font-size: 16px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .card h3 { margin: 0 0 8px; font-size: 16px; }
+.card .sub { color: var(--muted); font-size: 12px; margin: -4px 0 8px; font-variant-numeric: tabular-nums; }
 .card .row { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; }
 .card .val { color: var(--text); font-variant-numeric: tabular-nums; }
+.badge-tg { font-size: 13px; }
+.badge-arch { font-size: 11px; padding: 1px 6px; border-radius: 5px; background: var(--panel2); border: 1px solid var(--line); color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.chip { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); color: var(--muted); }
 
 .muted { color: var(--muted); }
 .error { color: var(--red); background: #2a1618; border: 1px solid #50262a; padding: 8px 12px; border-radius: 8px; }
@@ -35,6 +43,11 @@ main { padding: 24px; max-width: 1100px; margin: 0 auto; }
 .controls label { color: var(--muted); }
 .controls .chk { display: flex; align-items: center; gap: 6px; }
 input[type=number] { width: 90px; background: var(--panel2); border: 1px solid var(--line); color: var(--text); border-radius: 6px; padding: 6px 8px; }
+input[type=text], input[type=search], select { background: var(--panel2); border: 1px solid var(--line); color: var(--text); border-radius: 6px; padding: 6px 8px; font: inherit; }
+.search { width: 220px; }
+.select { cursor: pointer; }
+.controls label.grow { flex: 1; display: flex; align-items: center; gap: 6px; }
+.controls label.grow input { flex: 1; width: auto; }
 button {
   background: var(--accent2); color: #fff; border: none; border-radius: 7px;
   padding: 8px 16px; font-size: 14px; cursor: pointer;
@@ -57,7 +70,9 @@ tr:last-child td { border-bottom: none; }
 .badge { font-size: 12px; padding: 2px 7px; border-radius: 5px; background: var(--panel2); border: 1px solid var(--line); }
 .report { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; white-space: pre-wrap; word-break: break-word; font: 13px/1.6 ui-monospace, Menlo, Consolas, monospace; }
 
-.home-head { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+.home-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.home-head #btn-new { margin-left: auto; }
+#home-count { margin: 0 0 14px; }
 button.mini { font-size: 12px; padding: 4px 10px; margin-left: 8px; vertical-align: middle; }
 td input, th input { width: 120px; background: var(--panel2); border: 1px solid var(--line); color: var(--text); border-radius: 5px; padding: 4px 6px; text-align: right; font-variant-numeric: tabular-nums; }
 td input.sym { width: 70px; text-align: left; text-transform: uppercase; }

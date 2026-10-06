@@ -436,17 +436,54 @@ function doSavePf() {
   applyUpdates(updates, 'Salva modifiche al portafoglio');
 }
 
-async function doNewProfile() {
-  const name = (prompt('Nome del nuovo profilo (lettere, numeri, _ e -):') || '').trim();
-  if (!name) return;
+// ---------- nuovo profilo (modale) ----------
+// Slug "stile" dei profili esistenti: minuscole, senza accenti né spazi (es. "Mario Rossi" → "mariorossi").
+const slugify = s => (s || '').normalize('NFD').replace(new RegExp('[\\u0300-\\u036f]', 'g'), '').toLowerCase().replace(/[^a-z0-9_-]+/g, '');
+let nfSlugEdited = false; // true quando l'utente ha toccato lo slug a mano → stop all'auto-suggerimento
+
+function openNewProfile() {
+  nfSlugEdited = false;
+  for (const id of ['nf-name', 'nf-slug', 'nf-tags', 'nf-chat']) $('#' + id).value = '';
+  $('#nf-budget').value = 0;
+  $('#nf-error').hidden = true;
+  $('#modal').hidden = false;
+  $('#nf-name').focus();
+}
+function closeModal() { $('#modal').hidden = true; }
+
+async function doCreateProfile() {
+  const displayName = ($('#nf-name').value || '').trim();
+  const slug = ($('#nf-slug').value || '').trim();
+  const tags = ($('#nf-tags').value || '').split(',').map(s => s.trim()).filter(Boolean);
+  const chatId = ($('#nf-chat').value || '').trim();
+  const budget = Number($('#nf-budget').value) || 0;
+
+  const err = m => { const n = $('#nf-error'); n.textContent = m; n.hidden = false; };
+  if (!slug) return err('Lo slug è obbligatorio.');
+  if (!/^[A-Za-z0-9_-]+$/.test(slug)) return err('Slug non valido: solo lettere, numeri, _ e -.');
+  if (slug.startsWith('_')) return err('Lo slug non può iniziare con "_".');
+  if (chatId && !/^-?\d+$/.test(chatId)) return err('Chat Telegram non valida: atteso un numero intero.');
+
+  $('#nf-create').disabled = true;
+  $('#nf-error').hidden = true;
+  const post = (url, body) => api(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   try {
-    const data = await api('/api/profiles', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name }),
-    });
-    alert(`Profilo "${data.created}" creato.\n\nProssimi passi:\n- ${data.nextSteps.join('\n- ')}`);
-    await showDetail(data.created);
-  } catch (e) { alert('Errore: ' + e.message); }
+    await post('/api/profiles', { name: slug }); // la creazione deve riuscire, altrimenti resto nel modale
+  } catch (e) {
+    $('#nf-create').disabled = false;
+    return err(e.message);
+  }
+  // Profilo creato: scheda e telegram sono best-effort (un errore qui non annulla la creazione).
+  let warn = '';
+  try { if (displayName || tags.length) await post(`/api/profiles/${slug}/meta`, { displayName, tags }); }
+  catch (e) { warn += 'scheda non salvata (' + e.message + '). '; }
+  try { if (chatId) await post(`/api/profiles/${slug}/telegram`, { chatId, budget }); }
+  catch (e) { warn += 'Telegram non salvato (' + e.message + ').'; }
+
+  $('#nf-create').disabled = false;
+  closeModal();
+  await showDetail(slug);
+  if (warn) showErr('Profilo creato, ma: ' + warn + ' Correggi qui sotto e salva.');
 }
 
 // ---------- init ----------
@@ -456,7 +493,15 @@ $('#btn-analyze').onclick = doAnalyze;
 $('#btn-sync').onclick = doSync;
 $('#btn-csv').onclick = doCsv;
 $('#btn-apply-csv').onclick = doApplyCsv;
-$('#btn-new').onclick = doNewProfile;
+$('#btn-new').onclick = openNewProfile;
+$('#nf-cancel').onclick = closeModal;
+$('#nf-create').onclick = doCreateProfile;
+$('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+$('#nf-name').addEventListener('input', () => { if (!nfSlugEdited) $('#nf-slug').value = slugify($('#nf-name').value); });
+$('#nf-slug').addEventListener('input', () => { nfSlugEdited = $('#nf-slug').value.trim() !== ''; });
+for (const id of ['nf-name', 'nf-slug', 'nf-tags', 'nf-chat', 'nf-budget']) {
+  $('#' + id).addEventListener('keydown', e => { if (e.key === 'Enter') doCreateProfile(); });
+}
 $('#btn-edit-pf').onclick = () => togglePfEdit(true);
 $('#btn-cancel-pf').onclick = () => togglePfEdit(false);
 $('#btn-save-pf').onclick = doSavePf;

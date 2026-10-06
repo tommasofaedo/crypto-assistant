@@ -100,6 +100,26 @@
     </section>
   </main>
 
+  <!-- Modale: nuovo profilo (nome leggibile + slug + tag + chat Telegram in un colpo) -->
+  <div id="modal" class="modal" hidden>
+    <div class="modal-card">
+      <h3>Nuovo profilo</h3>
+      <div class="form">
+        <label>Nome leggibile <input type="text" id="nf-name" placeholder="es. Mario Rossi"></label>
+        <label>Slug (cartella) <input type="text" id="nf-slug" placeholder="mariorossi"></label>
+        <label>Tag <input type="text" id="nf-tags" placeholder="cliente, vip"></label>
+        <label>Chat Telegram <input type="text" id="nf-chat" inputmode="numeric" placeholder="es. 123456789"></label>
+        <label>Budget push € <input type="number" id="nf-budget" value="0" min="0" step="5"></label>
+      </div>
+      <p class="muted">Lo slug identifica la cartella del profilo e non si cambia dopo: solo lettere, numeri, <code>_</code> e <code>-</code>. Chat e budget sono facoltativi (impostabili anche dopo).</p>
+      <p id="nf-error" class="error" hidden></p>
+      <div class="modal-actions">
+        <button class="secondary" id="nf-cancel">Annulla</button>
+        <button id="nf-create">Crea profilo</button>
+      </div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>

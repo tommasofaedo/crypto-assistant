@@ -26,6 +26,7 @@ const os = require('os');
 const path = require('path');
 const { execSync } = require('child_process');
 const { reconcileSells } = require('./src/sellStateManager');
+const { publishClientProfile } = require('./src/clientPublish');
 
 const PORTFOLIO_PATH = paths.portfolioPath();
 const SKILL_DIR = process.env.CDC_APP_SKILL_DIR
@@ -34,10 +35,31 @@ const ACCOUNT_SCRIPT = path.join(SKILL_DIR, 'scripts', 'account.ts');
 const NEW_TOKEN_MIN_EUR = parseFloat(process.env.CDC_NEW_TOKEN_MIN_EUR ?? '1');
 const EPS = 1e-8;
 
-function readAppWallet() {
-  if (!process.env.CDC_API_KEY || !process.env.CDC_API_SECRET) {
-    throw new Error('CDC_API_KEY / CDC_API_SECRET mancanti nel .env');
+// Verifica le credenziali CDC con messaggi che distinguono i casi.
+// Trabocchetto multi-utente: una chiave VUOTA nel .env del profilo (es. `CDC_API_KEY=`)
+// viene caricata da dotenv come stringa vuota e, non essendo sovrascrivibile, fa da "tappo"
+// ai default del .env di root. Qui lo segnaliamo in chiaro invece di dire "mancanti".
+function assertCdcCreds() {
+  const have = k => (process.env[k] || '').trim().length > 0;
+  if (have('CDC_API_KEY') && have('CDC_API_SECRET')) return;
+
+  const profile = paths.getActiveProfile();
+  const pe = paths.envPath();
+  const profEnv = paths.profileEnv(profile);
+  const shadowing = ['CDC_API_KEY', 'CDC_API_SECRET']
+    .filter(k => k in profEnv && !(profEnv[k] || '').trim());
+
+  if (shadowing.length) {
+    throw new Error(
+      `${shadowing.join(' / ')} vuote nel profilo "${profile}": riempi ${pe} con le ` +
+      `credenziali Crypto.com (sola lettura) di questo utente. Le righe vuote nel profilo ` +
+      `hanno la precedenza sui default del .env di root, quindi vanno compilate (o rimosse).`);
   }
+  throw new Error('CDC_API_KEY / CDC_API_SECRET mancanti nel .env');
+}
+
+function readAppWallet() {
+  assertCdcCreds();
   if (!fs.existsSync(ACCOUNT_SCRIPT)) {
     throw new Error(`Script skill non trovato: ${ACCOUNT_SCRIPT}\n` +
       `Imposta CDC_APP_SKILL_DIR se la skill è altrove.`);
@@ -141,6 +163,9 @@ function main() {
   console.log(`\nValore totale portafoglio (tutti i prodotti): ~€${total.toFixed(2)}`);
   console.log(`Salvato: ${PORTFOLIO_PATH}`);
   console.log('\nNota: `quantity` (totale) resta SOVRANO e modificabile a mano/a voce.');
+
+  // Se è un profilo cliente, rispingi il portafoglio nel repo privato (cloud a PC spento).
+  publishClientProfile();
 }
 
 try {

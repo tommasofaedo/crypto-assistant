@@ -7,6 +7,7 @@ bot-error.log
 # Dati finanziari privati — repo pubblica, non committare mai
 crypto_transactions.csv
 storico_cryptocom/
+storico_ILARIA/
 status.png
 # Profili multi-utente: dati finanziari privati di ALTRI utenti — mai nel repo pubblico.
 # Il profilo "tommaso" resta tracciato (comportamento storico); gli altri vengono esclusi.

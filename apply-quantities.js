@@ -15,6 +15,7 @@ const paths = require('./src/paths');
 paths.boot();
 paths.loadEnv();
 const { reconcileSells } = require('./src/sellStateManager');
+const { publishClientProfile } = require('./src/clientPublish');
 
 const START = '===CRYPTO_JSON_START===';
 const END   = '===CRYPTO_JSON_END===';
@@ -76,10 +77,13 @@ function main() {
   // Come sync-app: deriva le vendite reali dal calo di quantity (arma cooldown/re-arm).
   const detectedSells = reconcileSells(pf);
 
+  // Se è un profilo cliente, rispingi il portafoglio nel repo privato (cloud a PC spento).
+  const published = publishClientProfile();
+
   const payload = {
     profile: paths.getActiveProfile(),
     appliedAt: new Date().toISOString(),
-    applied, created, detectedSells,
+    applied, created, detectedSells, published,
     portfolio: pf,
   };
   process.stdout.write(`\n${START}\n${JSON.stringify(payload)}\n${END}\n`);

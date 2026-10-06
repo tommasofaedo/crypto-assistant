@@ -90,4 +90,23 @@ async function createProfile(enginePath, name) {
   return data;
 }
 
-module.exports = { report, sync, reconcile, applyQuantities, telegramGet, telegramSet, createProfile };
+// Legge i metadati anagrafici del profilo (displayName, note, tags, archived) da meta.json.
+async function metaGet(enginePath, profile) {
+  const { code, out, err } = await run(enginePath, 'set-meta.js', ['--profile', profile, '--get', '--json']);
+  const data = extractJson(out);
+  if (data.error) throw new Error(data.error);
+  if (code !== 0) throw new Error(`set-meta uscito con codice ${code}: ${err.slice(-500)}`);
+  return data;
+}
+
+// SCRITTURA: aggiorna i metadati del profilo in meta.json (merge parziale lato motore).
+async function metaSet(enginePath, profile, settings) {
+  const { code, out, err } = await run(enginePath, 'set-meta.js',
+    ['--profile', profile, '--set', JSON.stringify(settings), '--json']);
+  const data = extractJson(out);
+  if (data.error) throw new Error(data.error);
+  if (code !== 0) throw new Error(`set-meta uscito con codice ${code}: ${err.slice(-500)}`);
+  return data;
+}
+
+module.exports = { report, sync, reconcile, applyQuantities, telegramGet, telegramSet, createProfile, metaGet, metaSet };

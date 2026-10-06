@@ -9,14 +9,17 @@ crypto_transactions.csv
 storico_cryptocom/
 storico_ILARIA/
 status.png
-# Profili multi-utente: dati finanziari privati di ALTRI utenti — mai nel repo pubblico.
+# Profili multi-utente: dati finanziari/anagrafici privati di ALTRI utenti — mai nel repo pubblico.
+# (meta.json contiene il nome leggibile del cliente = PII, stessa postura dei file finanziari.)
 # Il profilo "tommaso" resta tracciato (comportamento storico); gli altri vengono esclusi.
 data/profiles/*/portfolio.json
 data/profiles/*/history.json
 data/profiles/*/sellState.json
+data/profiles/*/meta.json
 !data/profiles/tommaso/portfolio.json
 !data/profiles/tommaso/history.json
 !data/profiles/tommaso/sellState.json
+!data/profiles/tommaso/meta.json
 # File di lavoro locali (skill/graphify/scratch) — non parte del progetto
 SKILL.md
 graphify-out/

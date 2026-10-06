@@ -41,14 +41,38 @@ function readHistory(dataDir, name, limit = 60) {
   return Array.isArray(all) ? all.slice(-limit).reverse() : [];
 }
 
+// Metadati anagrafici (display): nome leggibile, nota, tag, archiviato. Le scritture passano dal
+// motore (set-meta.js); qui è sola lettura, con default neutri se meta.json manca o è corrotto.
+function readMeta(dataDir, name) {
+  const m = readJson(path.join(dataDir, safeName(name), 'meta.json'), {});
+  return {
+    displayName: typeof m.displayName === 'string' ? m.displayName : '',
+    note: typeof m.note === 'string' ? m.note : '',
+    tags: Array.isArray(m.tags) ? m.tags.filter(t => typeof t === 'string') : [],
+    archived: m.archived === true,
+    updatedAt: m.updatedAt || null,
+  };
+}
+
 // Riassunto leggero per la home (nessuna chiamata di rete): usa valueAtSnapshot e l'ultimo snapshot.
+// Include i metadati anagrafici così la Home può mostrare nome leggibile, tag e stato archiviato.
 function summary(dataDir, name) {
   const pf = readPortfolio(dataDir, name);
   const hist = readJson(path.join(dataDir, safeName(name), 'history.json'), []);
   const lastDate = Array.isArray(hist) && hist.length ? hist[hist.length - 1].date : null;
   const assets = pf?.holdings?.length ?? 0;
   const snapshotValue = (pf?.holdings ?? []).reduce((s, h) => s + (h.valueAtSnapshot || 0), 0);
-  return { name, assets, snapshotValue, updatedAt: pf?.updatedAt ?? null, lastRun: lastDate };
+  const meta = readMeta(dataDir, name);
+  return {
+    name,
+    displayName: meta.displayName,
+    tags: meta.tags,
+    archived: meta.archived,
+    assets,
+    snapshotValue,
+    updatedAt: pf?.updatedAt ?? null,
+    lastRun: lastDate,
+  };
 }
 
-module.exports = { safeName, list, assertExists, readPortfolio, readHistory, summary };
+module.exports = { safeName, list, assertExists, readPortfolio, readHistory, readMeta, summary };

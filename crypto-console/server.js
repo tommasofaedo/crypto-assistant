@@ -44,6 +44,7 @@ app.get('/api/profiles/:p', wrap(async (req, res) => {
   const name = profiles.assertExists(cfg.dataDir, req.params.p);
   res.json({
     name,
+    meta: profiles.readMeta(cfg.dataDir, name),
     portfolio: profiles.readPortfolio(cfg.dataDir, name),
     history: profiles.readHistory(cfg.dataDir, name),
   });
@@ -102,6 +103,26 @@ app.post('/api/profiles/:p/telegram', wrap(async (req, res) => {
   if (req.body?.chatId !== undefined) settings.chatId = req.body.chatId;
   if (req.body?.budget !== undefined) settings.budget = req.body.budget;
   const data = await withLock(name, () => engine.telegramSet(cfg.enginePath, name, settings));
+  res.json(data);
+}));
+
+// Metadati anagrafici del profilo (nome leggibile, nota, tag, archiviato) per la console multi-utente.
+app.get('/api/profiles/:p/meta', wrap(async (req, res) => {
+  const name = profiles.assertExists(cfg.dataDir, req.params.p);
+  res.json(await engine.metaGet(cfg.enginePath, name));
+}));
+
+// SCRITTURA: aggiorna i metadati del profilo (merge parziale: displayName/note/tags/archived).
+app.post('/api/profiles/:p/meta', wrap(async (req, res) => {
+  const name = profiles.assertExists(cfg.dataDir, req.params.p);
+  const settings = {};
+  for (const k of ['displayName', 'note', 'tags', 'archived']) {
+    if (req.body?.[k] !== undefined) settings[k] = req.body[k];
+  }
+  if (!Object.keys(settings).length) {
+    throw Object.assign(new Error('Nessun metadato da aggiornare'), { status: 400 });
+  }
+  const data = await withLock(name, () => engine.metaSet(cfg.enginePath, name, settings));
   res.json(data);
 }));
 

@@ -106,7 +106,7 @@ async function handleAnalysis(chatId, budget) {
     if (budget > 0) snap += `\nBudget: <b>€${fmt(budget)}</b>`;
 
     await send(chatId, snap);
-    await send(chatId, `<b>MARCO FERRETTI — Raccomandazioni</b>\n\n${escapeHtml(aiText)}`);
+    await send(chatId, `<b>HARI SELDON — Raccomandazioni</b>\n\n${escapeHtml(aiText)}`);
 
   } catch (err) {
     await editProg(`<b>Errore durante l'analisi</b>\n\n${err.message}`);

@@ -120,7 +120,7 @@ async function main() {
   }
 
   console.log('\n' + '══════════════════════════════════════════════════════');
-  console.log('RACCOMANDAZIONE MARCO FERRETTI (identica a Telegram)');
+  console.log('RACCOMANDAZIONE HARI SELDON (identica a Telegram)');
   console.log('══════════════════════════════════════════════════════\n');
 
   const aiText = await getTelegramAdvice(portfolio, fearGreed, analyses, budgetEur, globalMetrics, watchlistAnalyses);

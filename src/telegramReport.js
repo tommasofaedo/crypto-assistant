@@ -45,7 +45,7 @@ function buildSnapshotMessage({ portfolio, fearGreed, watchlistAnalyses = [], bu
 
 // Messaggio 2: raccomandazione Hari Seldon.
 function buildRecoMessage(aiText) {
-  return `<b>MARCO FERRETTI — Raccomandazioni</b>\n\n${aiText}`;
+  return `<b>HARI SELDON — Raccomandazioni</b>\n\n${aiText}`;
 }
 
 async function sendTelegram(botToken, chatId, text) {
